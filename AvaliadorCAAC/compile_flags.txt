@@ -1,0 +1,12 @@
+-IC:\Users\thale\Documents\GitHub\Avaliador-CAAC\AvaliadorCAAC
+-IC:\Users\thale\Documents\GitHub\CAAC\wxPdfDocument
+-IC:\wxWidgets-3.1.3\lib\gcc_dll\mswu
+-IC:\wxWidgets-3.1.3\include
+-D_UNICODE
+-DHAVE_W32API_H
+-DWXUSINGDLL
+-D__WXMSW__
+-DNDEBUG
+-DUNICODE
+-target
+x86_64-pc-windows-gnu
