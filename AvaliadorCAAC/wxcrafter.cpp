@@ -77,6 +77,10 @@ MainFrameBaseClass::MainFrameBaseClass(wxWindow* parent,
                                     wxT("Abre um processo já criado"), wxITEM_NORMAL);
     m_menuFile->Append(m_menuItemOpen);
 
+    m_menuItemOpenDrive = new wxMenuItem(m_menuFile, wxID_FIND, wxT("Abrir Processo do Drive\tCtrl-D"),
+                                         wxT("Procura e abre arquivos do Drive"), wxITEM_NORMAL);
+    m_menuFile->Append(m_menuItemOpenDrive);
+
     m_menuItemExit = new wxMenuItem(m_menuFile, wxID_EXIT, wxT("Sair\tAlt-X"), wxT("Sai do programa"), wxITEM_NORMAL);
     m_menuFile->Append(m_menuItemExit);
 
@@ -206,6 +210,12 @@ MainFrameBaseClass::MainFrameBaseClass(wxWindow* parent,
     m_pgPropInvalidate = m_pgMgr->Append(new wxBoolProperty(wxT("Invalidar CH"), wxPG_LABEL, 0));
     m_pgPropInvalidate->SetHelpString(wxT(""));
 
+    m_pgPropShowInReport = m_pgMgr->Append(new wxBoolProperty(wxT("Mostrar no relatório"), wxPG_LABEL, 1));
+    m_pgPropShowInReport->SetHelpString(wxT(""));
+
+    m_pgPropIgnoreRestrictions = m_pgMgr->Append(new wxBoolProperty(wxT("Ignorar restrições"), wxPG_LABEL, 0));
+    m_pgPropIgnoreRestrictions->SetHelpString(wxT(""));
+
     m_pgPropObs = m_pgMgr->Append(new wxLongStringProperty(wxT("Observações"), wxPG_LABEL, wxT("")));
     m_pgPropObs->SetHelpString(wxT(""));
     m_pgMgr->SetMinSize(wxSize(400, -1));
@@ -254,23 +264,63 @@ MainFrameBaseClass::MainFrameBaseClass(wxWindow* parent,
 
     boxSizerLvl3_2->Add(m_grid, 1, wxALL | wxEXPAND, WXC_FROM_DIP(5));
 
-    wxBoxSizer* boxSizerLvl4_2 = new wxBoxSizer(wxVERTICAL);
+    wxBoxSizer* boxSizerLvl4_3 = new wxBoxSizer(wxHORIZONTAL);
 
-    boxSizerLvl3_2->Add(boxSizerLvl4_2, 0, wxALL | wxEXPAND, WXC_FROM_DIP(5));
+    boxSizerLvl3_2->Add(boxSizerLvl4_3, 0, wxEXPAND, WXC_FROM_DIP(5));
+
+    wxBoxSizer* boxSizerLvl5_1 = new wxBoxSizer(wxVERTICAL);
+
+    boxSizerLvl4_3->Add(boxSizerLvl5_1, 0, wxALL | wxALIGN_CENTER_VERTICAL, WXC_FROM_DIP(5));
 
     m_staticTextTotalRequested = new wxStaticText(m_mainPanel, wxID_ANY, wxT("Total solicitado = 0,0 h"),
                                                   wxDefaultPosition, wxDLG_UNIT(m_mainPanel, wxSize(-1, -1)), 0);
+    wxFont m_staticTextTotalRequestedFont(12, wxFONTFAMILY_SWISS, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL, false,
+                                          wxT("Arial"));
+    m_staticTextTotalRequested->SetFont(m_staticTextTotalRequestedFont);
 
-    boxSizerLvl4_2->Add(m_staticTextTotalRequested, 0, 0, WXC_FROM_DIP(5));
+    boxSizerLvl5_1->Add(m_staticTextTotalRequested, 0, 0, WXC_FROM_DIP(5));
 
     m_staticTextTotalValidated = new wxStaticText(m_mainPanel, wxID_ANY, wxT("Total validado = 0,0 h"),
                                                   wxDefaultPosition, wxDLG_UNIT(m_mainPanel, wxSize(-1, -1)), 0);
     m_staticTextTotalValidated->SetForegroundColour(wxColour(wxT("rgb(255,0,0)")));
-    wxFont m_staticTextTotalValidatedFont = wxSystemSettings::GetFont(wxSYS_SYSTEM_FONT);
-    m_staticTextTotalValidatedFont.SetWeight(wxFONTWEIGHT_BOLD);
+    wxFont m_staticTextTotalValidatedFont(12, wxFONTFAMILY_SWISS, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_BOLD, false,
+                                          wxT("Arial"));
     m_staticTextTotalValidated->SetFont(m_staticTextTotalValidatedFont);
 
-    boxSizerLvl4_2->Add(m_staticTextTotalValidated, 0, 0, WXC_FROM_DIP(5));
+    boxSizerLvl5_1->Add(m_staticTextTotalValidated, 0, 0, WXC_FROM_DIP(5));
+
+    boxSizerLvl4_3->Add(0, 0, 1, wxALL | wxEXPAND, WXC_FROM_DIP(5));
+
+    wxBoxSizer* boxSizerLvl5_2 = new wxBoxSizer(wxVERTICAL);
+
+    boxSizerLvl4_3->Add(boxSizerLvl5_2, 0, 0, WXC_FROM_DIP(5));
+
+    m_staticTextSubLimited = new wxStaticText(m_mainPanel, wxID_ANY, wxT("Carga horária limitada pela resolução"),
+                                              wxDefaultPosition, wxDLG_UNIT(m_mainPanel, wxSize(-1, -1)), 0);
+    m_staticTextSubLimited->SetForegroundColour(wxColour(wxT("rgb(255,100,0)")));
+
+    boxSizerLvl5_2->Add(m_staticTextSubLimited, 0, wxALIGN_RIGHT, WXC_FROM_DIP(5));
+
+    m_staticTextSubIgnored = new wxStaticText(m_mainPanel, wxID_ANY, wxT("Restrições de carga horária ignoradas"),
+                                              wxDefaultPosition, wxDLG_UNIT(m_mainPanel, wxSize(-1, -1)), 0);
+    m_staticTextSubIgnored->SetForegroundColour(wxColour(wxT("rgb(148,0,211)")));
+
+    boxSizerLvl5_2->Add(m_staticTextSubIgnored, 0, wxALIGN_RIGHT, WXC_FROM_DIP(5));
+
+    m_staticTextSubInvalidated = new wxStaticText(m_mainPanel, wxID_ANY, wxT("Carga horária invalidada"),
+                                                  wxDefaultPosition, wxDLG_UNIT(m_mainPanel, wxSize(-1, -1)), 0);
+    m_staticTextSubInvalidated->SetForegroundColour(wxColour(wxT("rgb(255,0,0)")));
+
+    boxSizerLvl5_2->Add(m_staticTextSubInvalidated, 0, wxALIGN_RIGHT, WXC_FROM_DIP(5));
+
+    m_staticTextSubNoReport = new wxStaticText(m_mainPanel, wxID_ANY, wxT("Item não impresso no relatório"),
+                                               wxDefaultPosition, wxDLG_UNIT(m_mainPanel, wxSize(-1, -1)), 0);
+    m_staticTextSubNoReport->SetForegroundColour(wxColour(wxT("rgb(128,128,128)")));
+    wxFont m_staticTextSubNoReportFont = wxSystemSettings::GetFont(wxSYS_DEFAULT_GUI_FONT);
+    m_staticTextSubNoReportFont.SetStyle(wxFONTSTYLE_ITALIC);
+    m_staticTextSubNoReport->SetFont(m_staticTextSubNoReportFont);
+
+    boxSizerLvl5_2->Add(m_staticTextSubNoReport, 0, wxALIGN_RIGHT, WXC_FROM_DIP(5));
 
     SetName(wxT("MainFrameBaseClass"));
     SetMinClientSize(wxSize(600, 400));
@@ -289,12 +339,15 @@ MainFrameBaseClass::MainFrameBaseClass(wxWindow* parent,
     }
 #endif
     // Connect events
+    this->Connect(wxEVT_CLOSE_WINDOW, wxCloseEventHandler(MainFrameBaseClass::OnCloseEvent), NULL, this);
     this->Connect(m_menuItemNew->GetId(), wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(MainFrameBaseClass::OnNew),
                   NULL, this);
     this->Connect(m_menuItemSave->GetId(), wxEVT_COMMAND_MENU_SELECTED,
                   wxCommandEventHandler(MainFrameBaseClass::OnSave), NULL, this);
     this->Connect(m_menuItemOpen->GetId(), wxEVT_COMMAND_MENU_SELECTED,
                   wxCommandEventHandler(MainFrameBaseClass::OnOpen), NULL, this);
+    this->Connect(m_menuItemOpenDrive->GetId(), wxEVT_COMMAND_MENU_SELECTED,
+                  wxCommandEventHandler(MainFrameBaseClass::OnOpenDrive), NULL, this);
     this->Connect(m_menuItemExit->GetId(), wxEVT_COMMAND_MENU_SELECTED,
                   wxCommandEventHandler(MainFrameBaseClass::OnExit), NULL, this);
     this->Connect(m_menuItemEditProcess->GetId(), wxEVT_COMMAND_MENU_SELECTED,
@@ -303,6 +356,7 @@ MainFrameBaseClass::MainFrameBaseClass(wxWindow* parent,
                   wxCommandEventHandler(MainFrameBaseClass::GenerateReport), NULL, this);
     this->Connect(m_menuItemAbout->GetId(), wxEVT_COMMAND_MENU_SELECTED,
                   wxCommandEventHandler(MainFrameBaseClass::OnAboutClick), NULL, this);
+    m_mainPanel->Connect(wxEVT_KEY_DOWN, wxKeyEventHandler(MainFrameBaseClass::OnPanelKeyDown), NULL, this);
     m_pgMgr->Connect(wxEVT_PG_CHANGED, wxPropertyGridEventHandler(MainFrameBaseClass::OnPGChange), NULL, this);
     m_buttonAppendItem->Connect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(MainFrameBaseClass::AppendItem),
                                 NULL, this);
@@ -316,12 +370,15 @@ MainFrameBaseClass::MainFrameBaseClass(wxWindow* parent,
 
 MainFrameBaseClass::~MainFrameBaseClass()
 {
+    this->Disconnect(wxEVT_CLOSE_WINDOW, wxCloseEventHandler(MainFrameBaseClass::OnCloseEvent), NULL, this);
     this->Disconnect(m_menuItemNew->GetId(), wxEVT_COMMAND_MENU_SELECTED,
                      wxCommandEventHandler(MainFrameBaseClass::OnNew), NULL, this);
     this->Disconnect(m_menuItemSave->GetId(), wxEVT_COMMAND_MENU_SELECTED,
                      wxCommandEventHandler(MainFrameBaseClass::OnSave), NULL, this);
     this->Disconnect(m_menuItemOpen->GetId(), wxEVT_COMMAND_MENU_SELECTED,
                      wxCommandEventHandler(MainFrameBaseClass::OnOpen), NULL, this);
+    this->Disconnect(m_menuItemOpenDrive->GetId(), wxEVT_COMMAND_MENU_SELECTED,
+                     wxCommandEventHandler(MainFrameBaseClass::OnOpenDrive), NULL, this);
     this->Disconnect(m_menuItemExit->GetId(), wxEVT_COMMAND_MENU_SELECTED,
                      wxCommandEventHandler(MainFrameBaseClass::OnExit), NULL, this);
     this->Disconnect(m_menuItemEditProcess->GetId(), wxEVT_COMMAND_MENU_SELECTED,
@@ -330,6 +387,7 @@ MainFrameBaseClass::~MainFrameBaseClass()
                      wxCommandEventHandler(MainFrameBaseClass::GenerateReport), NULL, this);
     this->Disconnect(m_menuItemAbout->GetId(), wxEVT_COMMAND_MENU_SELECTED,
                      wxCommandEventHandler(MainFrameBaseClass::OnAboutClick), NULL, this);
+    m_mainPanel->Disconnect(wxEVT_KEY_DOWN, wxKeyEventHandler(MainFrameBaseClass::OnPanelKeyDown), NULL, this);
     m_pgMgr->Disconnect(wxEVT_PG_CHANGED, wxPropertyGridEventHandler(MainFrameBaseClass::OnPGChange), NULL, this);
     m_buttonAppendItem->Disconnect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(MainFrameBaseClass::AppendItem),
                                    NULL, this);
@@ -431,6 +489,8 @@ NewProcessBase::NewProcessBase(wxWindow* parent,
 
     boxSizerLvl1_1->Add(boxSizerOKCancel, 0, wxALL | wxEXPAND | wxALIGN_RIGHT, WXC_FROM_DIP(5));
 
+    boxSizerOKCancel->Add(0, 0, 1, wxALL | wxEXPAND, WXC_FROM_DIP(5));
+
     m_buttonOK = new wxButton(this, wxID_ANY, wxT("OK"), wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), 0);
 
     boxSizerOKCancel->Add(m_buttonOK, 0, wxALL, WXC_FROM_DIP(5));
@@ -467,4 +527,132 @@ NewProcessBase::~NewProcessBase()
     m_buttonOK->Disconnect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(NewProcessBase::OnOKClick), NULL, this);
     m_buttonCancel->Disconnect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(NewProcessBase::OnCancelClick), NULL,
                                this);
+}
+
+SearchInDriveBase::SearchInDriveBase(wxWindow* parent,
+                                     wxWindowID id,
+                                     const wxString& title,
+                                     const wxPoint& pos,
+                                     const wxSize& size,
+                                     long style)
+    : wxDialog(parent, id, title, pos, size, style)
+{
+    if(!bBitmapLoaded) {
+        // We need to initialise the default bitmap handler
+        wxXmlResource::Get()->AddHandler(new wxBitmapXmlHandler);
+        wxC9ED9InitBitmapResources();
+        bBitmapLoaded = true;
+    }
+
+    wxBoxSizer* boxSizerLvl1_1 = new wxBoxSizer(wxVERTICAL);
+    this->SetSizer(boxSizerLvl1_1);
+
+    wxBoxSizer* boxSizerLvl2_1 = new wxBoxSizer(wxVERTICAL);
+
+    boxSizerLvl1_1->Add(boxSizerLvl2_1, 0, wxEXPAND, WXC_FROM_DIP(5));
+
+    m_staticTextProcess = new wxStaticText(this, wxID_ANY, wxT("Número do protocolo"), wxDefaultPosition,
+                                           wxDLG_UNIT(this, wxSize(-1, -1)), 0);
+
+    boxSizerLvl2_1->Add(m_staticTextProcess, 0, wxLEFT | wxRIGHT | wxTOP, WXC_FROM_DIP(5));
+
+    m_textCtrlProcessNumber =
+        new wxTextCtrl(this, wxID_ANY, wxT(""), wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), 0);
+#if wxVERSION_NUMBER >= 3000
+    m_textCtrlProcessNumber->SetHint(wxT("Insira o número do protocolo ou parte dele"));
+#endif
+
+    boxSizerLvl2_1->Add(m_textCtrlProcessNumber, 0, wxLEFT | wxRIGHT | wxBOTTOM | wxEXPAND, WXC_FROM_DIP(5));
+
+    wxBoxSizer* boxSizerLvl2_2 = new wxBoxSizer(wxVERTICAL);
+
+    boxSizerLvl1_1->Add(boxSizerLvl2_2, 0, wxEXPAND, WXC_FROM_DIP(5));
+
+    m_staticTextStudentName = new wxStaticText(this, wxID_ANY, wxT("Nome do estudante"), wxDefaultPosition,
+                                               wxDLG_UNIT(this, wxSize(-1, -1)), 0);
+
+    boxSizerLvl2_2->Add(m_staticTextStudentName, 0, wxLEFT | wxRIGHT | wxTOP, WXC_FROM_DIP(5));
+
+    m_textCtrlStudentName =
+        new wxTextCtrl(this, wxID_ANY, wxT(""), wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), 0);
+#if wxVERSION_NUMBER >= 3000
+    m_textCtrlStudentName->SetHint(wxT("Insira o nome completo do estudante ou parte dele"));
+#endif
+
+    boxSizerLvl2_2->Add(m_textCtrlStudentName, 0, wxLEFT | wxRIGHT | wxBOTTOM | wxEXPAND, WXC_FROM_DIP(5));
+
+    m_staticTextObs =
+        new wxStaticText(this, wxID_ANY, wxT("Obs.: Não é necessário preencher ambos os campos de pesquisa"),
+                         wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), 0);
+    m_staticTextObs->SetForegroundColour(wxColour(wxT("rgb(255,0,0)")));
+
+    boxSizerLvl1_1->Add(m_staticTextObs, 0, wxLEFT | wxRIGHT | wxTOP, WXC_FROM_DIP(5));
+
+    m_buttonRunSearch =
+        new wxButton(this, wxID_ANY, wxT("Buscar"), wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), 0);
+
+    boxSizerLvl1_1->Add(m_buttonRunSearch, 0, wxALL | wxALIGN_CENTER_HORIZONTAL, WXC_FROM_DIP(5));
+
+    wxBoxSizer* boxSizerLvl2_3 = new wxBoxSizer(wxVERTICAL);
+
+    boxSizerLvl1_1->Add(boxSizerLvl2_3, 1, wxALL | wxEXPAND, WXC_FROM_DIP(5));
+
+    m_listCtrlProcess =
+        new wxListCtrl(this, wxID_ANY, wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), wxLC_REPORT);
+
+    boxSizerLvl2_3->Add(m_listCtrlProcess, 1, wxEXPAND, WXC_FROM_DIP(5));
+    m_listCtrlProcess->SetMinSize(wxSize(-1, 150));
+
+    wxBoxSizer* boxSizerOKCancel = new wxBoxSizer(wxHORIZONTAL);
+
+    boxSizerLvl1_1->Add(boxSizerOKCancel, 0, wxALL | wxEXPAND | wxALIGN_RIGHT, WXC_FROM_DIP(5));
+
+    boxSizerOKCancel->Add(0, 0, 1, wxALL | wxEXPAND, WXC_FROM_DIP(5));
+
+    m_buttonOK = new wxButton(this, wxID_ANY, wxT("OK"), wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), 0);
+
+    boxSizerOKCancel->Add(m_buttonOK, 0, wxALL, WXC_FROM_DIP(5));
+
+    m_buttonCancel =
+        new wxButton(this, wxID_ANY, wxT("Cancelar"), wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), 0);
+
+    boxSizerOKCancel->Add(m_buttonCancel, 0, wxALL, WXC_FROM_DIP(5));
+
+    SetName(wxT("SearchInDriveBase"));
+    SetMinClientSize(wxSize(400, -1));
+    SetSize(wxDLG_UNIT(this, wxSize(500, 300)));
+    if(GetSizer()) { GetSizer()->Fit(this); }
+    if(GetParent()) {
+        CentreOnParent(wxBOTH);
+    } else {
+        CentreOnScreen(wxBOTH);
+    }
+#if wxVERSION_NUMBER >= 2900
+    if(!wxPersistenceManager::Get().Find(this)) {
+        wxPersistenceManager::Get().RegisterAndRestore(this);
+    } else {
+        wxPersistenceManager::Get().Restore(this);
+    }
+#endif
+    // Connect events
+    m_buttonRunSearch->Connect(wxEVT_COMMAND_BUTTON_CLICKED,
+                               wxCommandEventHandler(SearchInDriveBase::OnSearchButtonClick), NULL, this);
+    m_listCtrlProcess->Connect(wxEVT_COMMAND_LIST_ITEM_SELECTED, wxListEventHandler(SearchInDriveBase::OnItemSelected),
+                               NULL, this);
+    m_buttonOK->Connect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(SearchInDriveBase::OnOKButtonClick), NULL,
+                        this);
+    m_buttonCancel->Connect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(SearchInDriveBase::OnCancelButtonClick),
+                            NULL, this);
+}
+
+SearchInDriveBase::~SearchInDriveBase()
+{
+    m_buttonRunSearch->Disconnect(wxEVT_COMMAND_BUTTON_CLICKED,
+                                  wxCommandEventHandler(SearchInDriveBase::OnSearchButtonClick), NULL, this);
+    m_listCtrlProcess->Disconnect(wxEVT_COMMAND_LIST_ITEM_SELECTED,
+                                  wxListEventHandler(SearchInDriveBase::OnItemSelected), NULL, this);
+    m_buttonOK->Disconnect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(SearchInDriveBase::OnOKButtonClick),
+                           NULL, this);
+    m_buttonCancel->Disconnect(wxEVT_COMMAND_BUTTON_CLICKED,
+                               wxCommandEventHandler(SearchInDriveBase::OnCancelButtonClick), NULL, this);
 }

@@ -1,11 +1,15 @@
 #ifndef MAINFRAME_H
 #define MAINFRAME_H
-#include <vector>
-#include <wx/wfstream.h>
+#include <wx/arrstr.h>
+#include <wx/busyinfo.h>
 #include <wx/datetime.h>
 #include <wx/filedlg.h>
-#include <wx/utils.h>
 #include <wx/generic/aboutdlgg.h>
+#include <wx/process.h>
+#include <wx/textfile.h>
+#include <wx/utils.h>
+#include <wx/wfstream.h>
+#include <vector>
 #include "wxcrafter.h"
 
 #include "NewProcess.h"
@@ -14,6 +18,8 @@
 #define MY_APP_VERSION_STRING "0.1-beta"
 
 class PdfPage;
+class SearchInDrive;
+class FormatValues;
 
 class Activity
 {
@@ -44,6 +50,10 @@ class Activity
     void SetObs(const wxString& obs) { this->m_obs = obs; }
     bool IsInvalidateCH() const { return m_invalidateCH; }
     const wxString& GetObs() const { return m_obs; }
+    void SetIgnoreRestrictions(bool ignoreRestrictions) { this->m_ignoreRestrictions = ignoreRestrictions; }
+    void SetShowInReport(bool show) { this->m_show = show; }
+    bool IsRestrictionsIgnored() const { return m_ignoreRestrictions; }
+    bool IsShownInReport() const { return m_show; }
 
     void SetLimitedCH(bool limitedCH) { this->m_limitedCH = limitedCH; }
     bool IsLimitedCH() const { return m_limitedCH; }
@@ -59,6 +69,8 @@ class Activity
     wxString m_date = wxT("-");
     double m_chValidated = 0.0;
     bool m_invalidateCH = false;
+    bool m_show = true;
+    bool m_ignoreRestrictions = false;
     wxString m_obs = "";
 
     bool m_limitedCH = false;
@@ -71,6 +83,9 @@ class MainFrame : public MainFrameBaseClass
     virtual ~MainFrame();
 
    protected:
+    virtual void OnOpenDrive(wxCommandEvent& event);
+    virtual void OnPanelKeyDown(wxKeyEvent& event);
+    virtual void OnCloseEvent(wxCloseEvent& event);
     virtual void OnAboutClick(wxCommandEvent& event);
     virtual void GenerateReport(wxCommandEvent& event);
     virtual void EditProcess(wxCommandEvent& event);
@@ -92,7 +107,7 @@ class MainFrame : public MainFrameBaseClass
     virtual void ChangePropertyText(wxPGProperty* property, wxString newText);
     virtual void ValidateCH(Activity* activity);
     virtual void ClearAll();
-    
+
     virtual void DoAppendItem(bool createActivity = true, bool selectRow = true);
     virtual void DoRemoveItem();
 
@@ -101,16 +116,27 @@ class MainFrame : public MainFrameBaseClass
     virtual void FillPG(int id);
     virtual void UpdateChangedPG();
     virtual void UpdateCH();
+    virtual void UpdateRowColour(Activity* activity, int rowNumber);
 
     virtual void BypassSelectionEvent(bool bypass = true) { m_bypassSelEvent = bypass; }
     virtual bool IsSelectionEventBypassed() { return m_bypassSelEvent; }
 
     static int CompareForward(int* a, int* b);
     static int CompareBackward(int* a, int* b);
-    
+
     virtual void FillAllRows();
-    
+
+    virtual bool SaveProcess(wxString path, wxString fileName);
     virtual bool OpenProcess(wxString path);
+
+    virtual bool ShowSaveDialog();
+    virtual bool IsSaveNeeded() { return m_saveNeeded; }
+    virtual void SaveNeeded(bool saveNeeded = true) { m_saveNeeded = saveNeeded; }
+
+    // Drive mathods
+    wxBusyInfoFlags GetBusyInfoFlags(wxWindow* parent, wxString message);
+    virtual void SaveAtDrive(wxString path, wxString fileName);
+    virtual bool HaveFileInDive(wxString fileName, wxArrayString& fileIDs);
 
     wxLocale m_locale;
 
@@ -119,12 +145,18 @@ class MainFrame : public MainFrameBaseClass
     bool m_bypassSelEvent = false;
 
     std::vector<Activity*> m_activityList;
-    
+
     wxString m_protocolNumber = "";
     wxString m_studentName = "";
     long int m_numDocs = 0;
     Resolution m_resolution = N_16;
     double m_totalReqCH = 0.0;
     double m_totalValCH = 0.0;
+
+    bool m_saveNeeded = false;
+
+    const wxString m_runDriveAPI = "cmd.exe /c py googleDiveAPI.py";
+    const int m_consoleStatus = wxEXEC_HIDE_CONSOLE;
+    wxIcon m_ifIcon;
 };
 #endif  // MAINFRAME_H

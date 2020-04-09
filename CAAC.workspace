@@ -1,17 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CodeLite_Workspace Name="CAAC" Database="" Version="10000">
   <Project Name="AvaliadorCAAC" Path="AvaliadorCAAC/AvaliadorCAAC.project" Active="Yes"/>
-  <Project Name="wxPdfDocument" Path="../wxPdfDocument/wxPdfDocument.project" Active="No"/>
   <BuildMatrix>
     <WorkspaceConfiguration Name="Debug" Selected="no">
       <Environment/>
       <Project Name="AvaliadorCAAC" ConfigName="Debug"/>
-      <Project Name="wxPdfDocument" ConfigName="Debug"/>
     </WorkspaceConfiguration>
     <WorkspaceConfiguration Name="Release" Selected="yes">
       <Environment/>
       <Project Name="AvaliadorCAAC" ConfigName="Release"/>
-      <Project Name="wxPdfDocument" ConfigName="Release"/>
     </WorkspaceConfiguration>
   </BuildMatrix>
 </CodeLite_Workspace>

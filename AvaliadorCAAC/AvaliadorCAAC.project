@@ -1,19 +1,21 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CodeLite_Project Name="AvaliadorCAAC" Version="11000" InternalType="GUI">
+  <Plugins>
+    <Plugin Name="qmake">
+      <![CDATA[00020001N0005Debug0000000000000001N0007Release000000000000]]>
+    </Plugin>
+  </Plugins>
   <VirtualDirectory Name="rapidXML">
     <File Name="rapidXML/rapidxml_utils.hpp"/>
     <File Name="rapidXML/rapidxml_print.hpp"/>
     <File Name="rapidXML/rapidxml_iterators.hpp"/>
     <File Name="rapidXML/rapidxml.hpp"/>
   </VirtualDirectory>
-  <Plugins>
-    <Plugin Name="qmake">
-      <![CDATA[00020001N0005Debug0000000000000001N0007Release000000000000]]>
-    </Plugin>
-  </Plugins>
   <Description/>
   <Dependencies/>
   <VirtualDirectory Name="src">
+    <File Name="FormatValues.cpp"/>
+    <File Name="SearchInDrive.cpp"/>
     <File Name="XMLParser.cpp"/>
     <File Name="PdfPage.cpp"/>
     <File Name="NewProcess.cpp"/>
@@ -23,6 +25,8 @@
     <File Name="wxcrafter_bitmaps.cpp"/>
   </VirtualDirectory>
   <VirtualDirectory Name="include">
+    <File Name="FormatValues.h"/>
+    <File Name="SearchInDrive.h"/>
     <File Name="XMLParser.h"/>
     <File Name="PdfPage.h"/>
     <File Name="NewProcess.h"/>
@@ -33,6 +37,8 @@
     <File Name="wxcrafter.wxcp"/>
     <File Name="win_resources.rc"/>
   </VirtualDirectory>
+  <Dependencies Name="Debug"/>
+  <Dependencies Name="Release"/>
   <Settings Type="Executable">
     <GlobalSettings>
       <Compiler Options="" C_Options="" Assembler="">
@@ -46,8 +52,12 @@
     <Configuration Name="Debug" CompilerType="MinGW ( TDM-GCC-64 )" DebuggerType="GNU gdb debugger" Type="Executable" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="append" BuildResWithGlobalSettings="append">
       <Compiler Options="-g;-O0;-std=c++17;-Wall;$(shell wx-config --cflags) " C_Options="-g;-O0;-Wall" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
         <IncludePath Value="."/>
+        <IncludePath Value="C:\Users\thale\Documents\GitHub\CAAC\wxPdfDocument"/>
       </Compiler>
-      <Linker Options="$(shell wx-config --libs std,adv,ribbon,aui,propgrid,richtext,stc);-mwindows;-static" Required="yes"/>
+      <Linker Options="$(shell wx-config --libs std,adv,ribbon,aui,propgrid,richtext,stc);-mwindows;-static" Required="yes">
+        <LibraryPath Value="C:\Users\thale\Documents\GitHub\CAAC\wxPdfDocument\Release"/>
+        <Library Value="libwxPdfDocument"/>
+      </Linker>
       <ResourceCompiler Options="$(shell wx-config --rcflags)" Required="no"/>
       <General OutputFile="$(IntermediateDirectory)/AvaliadorCAAC" IntermediateDirectory="./Debug_x64" Command="./AvaliadorCAAC" CommandArguments="" UseSeparateDebugArgs="no" DebugArguments="" WorkingDirectory="$(IntermediateDirectory)" PauseExecWhenProcTerminates="no" IsGUIProgram="yes" IsEnabled="yes"/>
       <BuildSystem Name="Default"/>

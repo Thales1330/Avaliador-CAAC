@@ -1,7 +1,9 @@
 #include <wx/aboutdlg.h>
 #include <wx/msgdlg.h>
+#include "FormatValues.h"
 #include "MainFrame.h"
 #include "PdfPage.h"
+#include "SearchInDrive.h"
 
 MainFrame::MainFrame(wxWindow* parent) : MainFrameBaseClass(parent) { InitFrame(); }
 
@@ -9,12 +11,25 @@ MainFrame::~MainFrame() {}
 
 void MainFrame::InitFrame()
 {
-    m_locale.Init();
+    // Check if is first Run
+    if(!wxFileExists("token.pickle")) {
+        wxMessageDialog dialog(
+            this,
+            wxT("Será realizada a configuração de primeira execução.\nPara isso será realizado o download dos pacotes "
+                "Python necessários\ne em seguida as credenciais do e-mail da CAAC serão solicitados."),
+            wxT("Atenção!"), wxICON_WARNING | wxOK);
+        dialog.ShowModal();
+        wxExecute(wxString::Format("cmd.exe /c firstRun.bat"), wxEXEC_SYNC /*| m_consoleStatus*/);
+    }
 
+    m_locale.Init();
+    m_ifIcon.LoadFile("logo128.png", wxBITMAP_TYPE_PNG);
     EnableAll(false);
     BuildGrid();
     m_pgPropIFGEvent->SetAttribute(wxPG_BOOL_USE_CHECKBOX, true);
     m_pgPropInvalidate->SetAttribute(wxPG_BOOL_USE_CHECKBOX, true);
+    m_pgPropShowInReport->SetAttribute(wxPG_BOOL_USE_CHECKBOX, true);
+    m_pgPropIgnoreRestrictions->SetAttribute(wxPG_BOOL_USE_CHECKBOX, true);
 }
 
 void MainFrame::OnExit(wxCommandEvent& event)
@@ -25,12 +40,56 @@ void MainFrame::OnExit(wxCommandEvent& event)
 
 void MainFrame::OnNew(wxCommandEvent& event)
 {
+    if(IsSaveNeeded())
+        ShowSaveDialog();
+    else
+        SaveNeeded();
+
     NewProcess process(this, &m_protocolNumber, &m_studentName, &m_numDocs, &m_resolution);
     if(process.ShowModal() == wxID_OK) {
         ClearAll();
         EnableAll();
+
+        wxMessageDialog dialog(this,
+                               wxT("Deseja buscar o aluno no Drive?\nCaso o aluno já possua processos anteriores os "
+                                   "comprovantes poderão ser importados."),
+                               wxT("Atenção!"), wxICON_WARNING | wxYES_NO);
+        if(dialog.ShowModal() == wxID_YES) {
+            wxString* fileID = new wxString("");
+            wxString* fileName = new wxString("");
+            SearchInDrive driveDialog(this, fileID, fileName);
+            driveDialog.FillProtocolNum(m_protocolNumber);
+            driveDialog.FillStudentName(m_studentName);
+            driveDialog.DoSearch();
+            if(driveDialog.ShowModal() == wxID_OK) {
+                wxBusyInfo busy(GetBusyInfoFlags(this, wxT("Baixando processo...")));
+                wxString path = "downloads\\" + *fileName + ".xml";
+                wxExecute(wxString::Format("%s Download \"%s\" \"%s\"", m_runDriveAPI, *fileID, path),
+                          wxEXEC_SYNC | m_consoleStatus);
+
+                // Before open save the new basic data:
+                wxString newProtocol = m_protocolNumber;
+                wxString newName = m_studentName;
+                long int newNumDocs = m_numDocs;
+                Resolution newResolution = m_resolution;
+                // Open process
+                OpenProcess(path);
+                // Return to new values
+                m_protocolNumber = newProtocol;
+                m_studentName = newName;
+                m_numDocs = newNumDocs;
+                m_resolution = newResolution;
+
+                // Hide all activities from report
+                for(auto it = m_activityList.begin(), itEnd = m_activityList.end(); it != itEnd; ++it) {
+                    Activity* activity = *it;
+                    activity->SetShowInReport(false);
+                }
+            }
+        }
         m_staticTextProcessNumber->SetLabel(wxT("Processo: ") + m_protocolNumber);
         m_staticTextStudentName->SetLabel(wxT("Aluno: ") + m_studentName);
+        ValidateAllActivities();
     }
     for(int i = 0; i < m_numDocs; ++i) DoAppendItem();
 }
@@ -98,6 +157,10 @@ bool MainFrame::OpenProcess(wxString path)
         activity->SetChPresented(XMLParser::GetNodeValueDouble(activityNode, "CH"));
         // Atividade valida
         activity->SetInvalidateCH(static_cast<bool>(XMLParser::GetNodeValueInt(activityNode, "AtividadeValida")));
+        // Exibir no relatorio
+        activity->SetShowInReport(static_cast<bool>(XMLParser::GetNodeValueInt(activityNode, "ExibirNoRelatorio")));
+        // Ignorar restricoes
+        activity->SetIgnoreRestrictions(static_cast<bool>(XMLParser::GetNodeValueInt(activityNode, "IgnorarRestricoes")));
         // Obs
         auto obsNode = activityNode->first_node("Observacoes");
         if(!obsNode) return false;
@@ -127,16 +190,23 @@ bool MainFrame::OpenProcess(wxString path)
 
 void MainFrame::OnSave(wxCommandEvent& event)
 {
+    FormatValues fValues(m_protocolNumber, m_studentName);
     wxFileDialog saveFileDialog(this, wxT("Salvar arquivo XML"), "", "", "Arquivo XML (*.xml)|*.xml",
                                 wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
+    saveFileDialog.SetFilename(wxString::Format(wxT("%s[%s]"), fValues.GetProtocol(), fValues.GetName()));
     if(saveFileDialog.ShowModal() == wxID_CANCEL) return;
 
+    SaveProcess(saveFileDialog.GetPath(), saveFileDialog.GetFilename());
+}
+
+bool MainFrame::SaveProcess(wxString path, wxString fileName)
+{
     // Erase the file (if exists or not) and write the initial data
-    std::ofstream writeProjectsFile(saveFileDialog.GetPath().mb_str());
+    std::ofstream writeProjectsFile(path.mb_str());
     writeProjectsFile.close();
 
     rapidxml::xml_document<> doc;
-    rapidxml::file<> xmlFile(saveFileDialog.GetPath());
+    rapidxml::file<> xmlFile(path);
     doc.parse<0>(xmlFile.data());
 
     rapidxml::xml_node<>* decl = doc.allocate_node(rapidxml::node_declaration);
@@ -150,7 +220,7 @@ void MainFrame::OnSave(wxCommandEvent& event)
     doc.append_node(rootNode);
 
     rapidxml::xml_node<>* processNameNode = XMLParser::AppendNode(doc, rootNode, "Nome");
-    XMLParser::SetNodeValue(doc, processNameNode, saveFileDialog.GetFilename());
+    XMLParser::SetNodeValue(doc, processNameNode, fileName);
 
     rapidxml::xml_node<>* processNumber = XMLParser::AppendNode(doc, rootNode, "NumProtocolo");
     XMLParser::SetNodeValue(doc, processNumber, m_protocolNumber);
@@ -192,14 +262,26 @@ void MainFrame::OnSave(wxCommandEvent& event)
         // Atividade valida
         rapidxml::xml_node<>* validAct = XMLParser::AppendNode(doc, activityNode, "AtividadeValida");
         XMLParser::SetNodeValue(doc, validAct, static_cast<int>(activity->IsInvalidateCH()));
+        // Exibir no relatorio
+        rapidxml::xml_node<>* shownInReport = XMLParser::AppendNode(doc, activityNode, "ExibirNoRelatorio");
+        XMLParser::SetNodeValue(doc, shownInReport, static_cast<int>(activity->IsShownInReport()));
+        // Ignorar restricoes
+        rapidxml::xml_node<>* ignoreRestrictions = XMLParser::AppendNode(doc, activityNode, "IgnorarRestricoes");
+        XMLParser::SetNodeValue(doc, ignoreRestrictions, static_cast<int>(activity->IsRestrictionsIgnored()));
         // Obs
         rapidxml::xml_node<>* obs = XMLParser::AppendNode(doc, activityNode, "Observacoes");
         XMLParser::SetNodeValue(doc, obs, activity->GetObs());
     }
 
-    std::ofstream writeXML(saveFileDialog.GetPath().mb_str());
+    std::ofstream writeXML(path.mb_str());
     writeXML << doc;
     writeXML.close();
+
+    FormatValues fValues(m_protocolNumber, m_studentName);
+    SaveAtDrive(path, wxString::Format("%s[%s].xml", fValues.GetProtocol(), fValues.GetName()));
+
+    SaveNeeded(false);
+    return true;
 }
 
 void MainFrame::EnableAll(bool enable)
@@ -213,6 +295,8 @@ void MainFrame::EnableAll(bool enable)
     m_pgPropDate->Enable(enable);
     m_pgPropCH->Enable(enable);
     m_pgPropInvalidate->Enable(enable);
+    m_pgPropShowInReport->Enable(enable);
+    m_pgPropIgnoreRestrictions->Enable(enable);
     m_pgPropObs->Enable(enable);
 
     m_buttonAppendItem->Enable(enable);
@@ -312,22 +396,94 @@ void MainFrame::ValidateCH(Activity* activity)
     for(auto it = m_activityList.begin(), itEnd = m_activityList.end(); it != itEnd; ++it) {
         Activity* activity = *it;
         activity->SetLimitedCH(false);
-        switch(activity->GetItemCode()) {
-            case 1:
-            case 2:
-            case 5: {
-                activity->SetChValidated(activity->GetShiftNumber() * 4.0);
-                activity->SetChPresented(activity->GetShiftNumber() * 4.0);
-            } break;
-            case 3:
-            case 4: {
-                double ch = activity->GetChPresented();
-                if(!activity->IsIFGEvent()) {
-                    ch *= 0.8;
-                    double oldCHEventNonIFG = chEventNonIFG;
-                    chEventNonIFG += ch;
-                    if(chEventNonIFG > m_chCompActivity * 0.5) {
-                        double partialCH = m_chCompActivity * 0.5 - oldCHEventNonIFG;
+        if(activity->IsInvalidateCH()) {
+            activity->SetChValidated(0.0);
+            activity->SetLimitedCH(true);
+        } else {
+            switch(activity->GetItemCode()) {
+                case 1:
+                case 2:
+                case 5: {
+                    activity->SetChValidated(activity->GetShiftNumber() * 4.0);
+                    activity->SetChPresented(activity->GetShiftNumber() * 4.0);
+                } break;
+                case 3:
+                case 4: {
+                    double ch = activity->GetChPresented();
+                    if(!activity->IsIFGEvent() && !activity->IsRestrictionsIgnored()) {
+                        ch *= 0.8;
+                        double oldCHEventNonIFG = chEventNonIFG;
+                        chEventNonIFG += ch;
+                        if(chEventNonIFG > m_chCompActivity * 0.5) {
+                            double partialCH = m_chCompActivity * 0.5 - oldCHEventNonIFG;
+                            if(partialCH > 0) {
+                                activity->SetChValidated(partialCH);
+                                activity->SetLimitedCH(true);
+                            } else {
+                                activity->SetChValidated(0.0);
+                                activity->SetLimitedCH(true);
+                            }
+                        } else {
+                            activity->SetChValidated(ch);
+                        }
+                        activity->SetLimitedCH(true);
+                    } else
+                        activity->SetChValidated(ch);
+                } break;
+                case 6:
+                case 11:
+                case 16: {
+                    double ch = activity->GetChPresented();
+                    double oldCH = 0.0;
+                    double accCH = 0.0;
+                    if(activity->GetItemCode() == 6) {
+                        oldCH = chLanguage;
+                        chLanguage += ch;
+                        accCH = chLanguage;
+                    } else if(activity->GetItemCode() == 11) {
+                        oldCH = chCourses;
+                        chCourses += ch;
+                        accCH = chCourses;
+                    } else if(activity->GetItemCode() == 16) {
+                        oldCH = chComWork;
+                        chComWork += ch;
+                        accCH = chComWork;
+                    }
+                    if((accCH > m_chCompActivity * 0.4) && !activity->IsRestrictionsIgnored()) {
+                        double partialCH = m_chCompActivity * 0.4 - oldCH;
+                        if(partialCH > 0) {
+                            activity->SetChValidated(partialCH);
+                            activity->SetLimitedCH(true);
+                        } else {
+                            activity->SetChValidated(0.0);
+                            activity->SetLimitedCH(true);
+                        }
+                    } else
+                        activity->SetChValidated(ch);
+                } break;
+                case 7:
+                case 8:
+                case 9:
+                case 10:{
+                    activity->SetChValidated(60.0);
+                    activity->SetChPresented(60.0);
+                } break;
+                case 12: {
+                    activity->SetChValidated(60.0);
+                } break;
+                case 13:
+                case 14:
+                case 15: {
+                    activity->SetChValidated(30.0);
+                    activity->SetChPresented(30.0);
+                } break;
+                case 17: {
+                    double ch = activity->GetShiftNumber() * 2.0;
+                    activity->SetChPresented(ch);
+                    double oldCHTCC = chTCC;
+                    chTCC += ch;
+                    if((chTCC > m_chCompActivity * 0.2) && !activity->IsRestrictionsIgnored()) {
+                        double partialCH = m_chCompActivity * 0.2 - oldCHTCC;
                         if(partialCH > 0) {
                             activity->SetChValidated(partialCH);
                             activity->SetLimitedCH(true);
@@ -338,77 +494,14 @@ void MainFrame::ValidateCH(Activity* activity)
                     } else {
                         activity->SetChValidated(ch);
                     }
-                } else
-                    activity->SetChValidated(ch);
-            } break;
-            case 6:
-            case 11:
-            case 16: {
-                double ch = activity->GetChPresented();
-                double oldCH = 0.0;
-                double accCH = 0.0;
-                if(activity->GetItemCode() == 6) {
-                    oldCH = chLanguage;
-                    chLanguage += ch;
-                    accCH = chLanguage;
-                } else if(activity->GetItemCode() == 11) {
-                    oldCH = chCourses;
-                    chCourses += ch;
-                    accCH = chCourses;
-                } else if(activity->GetItemCode() == 16) {
-                    oldCH = chComWork;
-                    chComWork += ch;
-                    accCH = chComWork;
-                }
-                if(accCH > m_chCompActivity * 0.4) {
-                    double partialCH = m_chCompActivity * 0.4 - oldCH;
-                    if(partialCH > 0) {
-                        activity->SetChValidated(partialCH);
-                        activity->SetLimitedCH(true);
-                    } else {
-                        activity->SetChValidated(0.0);
-                        activity->SetLimitedCH(true);
-                    }
-                } else
-                    activity->SetChValidated(ch);
-            } break;
-            case 7:
-            case 8:
-            case 9:
-            case 10:
-            case 12: {
-                activity->SetChValidated(60.0);
-                activity->SetChPresented(60.0);
-            } break;
-            case 13:
-            case 14:
-            case 15: {
-                activity->SetChValidated(30.0);
-                activity->SetChPresented(30.0);
-            } break;
-            case 17: {
-                double ch = activity->GetShiftNumber() * 2.0;
-                activity->SetChPresented(ch);
-                double oldCHTCC = chTCC;
-                chTCC += ch;
-                if(chTCC > m_chCompActivity * 0.2) {
-                    double partialCH = m_chCompActivity * 0.2 - oldCHTCC;
-                    if(partialCH > 0) {
-                        activity->SetChValidated(partialCH);
-                        activity->SetLimitedCH(true);
-                    } else {
-                        activity->SetChValidated(0.0);
-                        activity->SetLimitedCH(true);
-                    }
-                } else {
-                    activity->SetChValidated(ch);
-                }
 
-            } break;
-            default:
-                break;
+                } break;
+                default:
+                    break;
+            }
         }
     }
+    SaveNeeded();
 }
 
 void MainFrame::ValidateAllActivities()
@@ -435,9 +528,9 @@ void MainFrame::UpdateRowCH(Activity* activity)
 
     m_grid->SetCellValue(rowNumber, 8, wxString::Format("%f", activity->GetChValidated()));
 
-    wxColour rowColour = *wxBLACK;
-    if(activity->IsLimitedCH()) { rowColour = *wxRED; }
-    for(int j = 0; j < 9; ++j) m_grid->SetCellTextColour(rowNumber, j, rowColour);
+    UpdateRowColour(activity, rowNumber);
+
+    m_grid->Refresh();
 }
 
 void MainFrame::FillPG(int id)
@@ -454,6 +547,8 @@ void MainFrame::FillPG(int id)
             m_pgPropDate->SetValueFromString(activity->GetDate());
             m_pgPropCH->SetValueFromString(wxString::Format("%f", activity->GetChPresented()));
             m_pgPropInvalidate->SetValueFromInt(activity->IsInvalidateCH());
+            m_pgPropShowInReport->SetValueFromInt(activity->IsShownInReport());
+            m_pgPropIgnoreRestrictions->SetValueFromInt(activity->IsRestrictionsIgnored());
             m_pgPropObs->SetValueFromString(activity->GetObs());
         }
     }
@@ -503,8 +598,12 @@ void MainFrame::UpdateChangedPG()
         case 8:
         case 9:
         case 10:
-        case 12: {
+        {
             // nothing really matters...
+        } break;
+        case 12: {
+            m_pgPropCH->Enable(true);
+            ch = true;
         } break;
         case 13:
         case 14:
@@ -542,6 +641,8 @@ void MainFrame::UpdateChangedPG()
         currentActivity->SetChPresented(m_pgPropCH->GetValue().GetDouble());
         currentActivity->SetDate(m_pgPropDate->GetValue().GetString());
         currentActivity->SetInvalidateCH(m_pgPropInvalidate->GetValue().GetBool());
+        currentActivity->SetShowInReport(m_pgPropShowInReport->GetValue().GetBool());
+        currentActivity->SetIgnoreRestrictions(m_pgPropIgnoreRestrictions->GetValue().GetBool());
         currentActivity->SetObs(m_pgPropObs->GetValue().GetString());
 
         ValidateCH(currentActivity);
@@ -569,13 +670,16 @@ void MainFrame::UpdateChangedPG()
 
             m_grid->SetCellValue(rowNumber, 8, wxString::Format("%f", currentActivity->GetChValidated()));
 
-            wxColour rowColour = *wxBLACK;
-            if(currentActivity->IsLimitedCH()) { rowColour = *wxRED; }
-            for(int i = 0; i < 9; ++i) m_grid->SetCellTextColour(rowNumber, i, rowColour);
+            // UpdateRowColour(currentActivity, rowNumber);
         }
     }
 
+    ValidateAllActivities();
+
+    m_grid->Refresh();
+
     UpdateCH();
+    SaveNeeded();
 }
 void MainFrame::GoUp(wxCommandEvent& event)
 {
@@ -598,9 +702,14 @@ void MainFrame::GoUp(wxCommandEvent& event)
                 BypassSelectionEvent();
                 m_grid->SelectRow(rowNumber - 1, true);
                 m_grid->DeselectRow(rowNumber);
+
+                UpdateRowColour(m_activityList[rowNumber], rowNumber);
+                UpdateRowColour(m_activityList[rowNumber - 1], rowNumber - 1);
             }
         }
     }
+    m_grid->Refresh();
+    SaveNeeded();
 }
 void MainFrame::GoDown(wxCommandEvent& event)
 {
@@ -623,9 +732,14 @@ void MainFrame::GoDown(wxCommandEvent& event)
                 BypassSelectionEvent();
                 m_grid->SelectRow(rowNumber + 1, true);
                 m_grid->DeselectRow(rowNumber);
+
+                UpdateRowColour(m_activityList[rowNumber], rowNumber);
+                UpdateRowColour(m_activityList[rowNumber + 1], rowNumber + 1);
             }
         }
     }
+    m_grid->Refresh();
+    SaveNeeded();
 }
 
 int MainFrame::CompareForward(int* a, int* b)
@@ -658,6 +772,7 @@ void MainFrame::EditProcess(wxCommandEvent& event)
         m_staticTextProcessNumber->SetLabel(wxT("Processo: ") + m_protocolNumber);
         m_staticTextStudentName->SetLabel(wxT("Aluno: ") + m_studentName);
     }
+    SaveNeeded();
 }
 
 void MainFrame::ClearAll()
@@ -683,12 +798,14 @@ void MainFrame::DoAppendItem(bool createActivity, bool selectRow)
         Activity* newActivity = new Activity(m_index);
         m_activityList.emplace_back(newActivity);
     }
-    if(selectRow)
-        m_grid->SelectRow(m_grid->GetNumberRows() - 1);
-    else
+    if(selectRow) {
         BypassSelectionEvent();
+        m_grid->SelectRow(m_grid->GetNumberRows() - 1);
+    }
+
     m_index++;
     m_grid->SetRowLabelSize(wxGRID_AUTOSIZE);
+    SaveNeeded();
 }
 
 void MainFrame::DoRemoveItem()
@@ -712,6 +829,7 @@ void MainFrame::DoRemoveItem()
         }
     }
     ValidateAllActivities();
+    SaveNeeded();
 }
 
 void MainFrame::UpdateCH()
@@ -720,8 +838,10 @@ void MainFrame::UpdateCH()
     double chValidated = 0.0;
     for(auto it = m_activityList.begin(), itEnd = m_activityList.end(); it != itEnd; ++it) {
         Activity* activity = *it;
-        chRequested += activity->GetChPresented();
-        chValidated += activity->GetChValidated();
+        if(activity->IsShownInReport()) {
+            chRequested += activity->GetChPresented();
+            chValidated += activity->GetChValidated();
+        }
     }
 
     m_totalReqCH = chRequested;
@@ -811,18 +931,20 @@ void MainFrame::GenerateReport(wxCommandEvent& event)
     int numObs = 3;
     for(auto it = m_activityList.begin(), itEnd = m_activityList.end(); it != itEnd; ++it) {
         Activity* activity = *it;
-        wxString activityStr = fTBtxt;
-        activityStr.Replace("\\event", activity->GetEventName());
-        activityStr.Replace("\\institution", activity->GetInstitutionName());
-        activityStr.Replace("\\date", activity->GetDate());
-        activityStr.Replace("\\requiredCH", wxString::FromDouble(activity->GetChPresented()));
-        wxString validatedCHStr = wxString::FromDouble(activity->GetChValidated());
-        if(activity->GetObs() != "") {
-            validatedCHStr += wxString::Format(wxS("<sup>%d</sup>"), numObs);
-            numObs++;
+        if(activity->IsShownInReport()) {
+            wxString activityStr = fTBtxt;
+            activityStr.Replace("\\event", activity->GetEventName());
+            activityStr.Replace("\\institution", activity->GetInstitutionName());
+            activityStr.Replace("\\date", activity->GetDate());
+            activityStr.Replace("\\requiredCH", wxString::FromDouble(activity->GetChPresented()));
+            wxString validatedCHStr = wxString::FromDouble(activity->GetChValidated());
+            if(activity->GetObs() != "") {
+                validatedCHStr += wxString::Format(wxS("<sup>%d</sup>"), numObs);
+                numObs++;
+            }
+            activityStr.Replace("\\validatedCH", validatedCHStr);
+            table += activityStr;
         }
-        activityStr.Replace("\\validatedCH", validatedCHStr);
-        table += activityStr;
     }
 
     fTFtxt.Replace("\\totalReqCH", wxString::FromDouble(m_totalReqCH));
@@ -846,7 +968,7 @@ void MainFrame::GenerateReport(wxCommandEvent& event)
                               m_resolution == N_16 ? wxT("16") : wxT("20"));
     for(auto it = m_activityList.begin(), itEnd = m_activityList.end(); it != itEnd; ++it) {
         Activity* activity = *it;
-        if(activity->GetObs() != "") { olStr += "<li>" + activity->GetObs() + "</li>"; }
+        if(activity->GetObs() != "" && activity->IsShownInReport()) { olStr += "<li>" + activity->GetObs() + "</li>"; }
     }
     olStr += "</ol>";
     pdf.WriteXml(olStr);
@@ -867,8 +989,10 @@ void MainFrame::GenerateReport(wxCommandEvent& event)
     wxString fSgnTxt(ctxt, *wxConvCurrent);
     pdf.WriteXml(fSgnTxt);
 
+    FormatValues fValues(m_protocolNumber, m_studentName);
     wxFileDialog saveFileDialog(this, _("Salvar PDF"), "", "", "Arquivos PDF (*.pdf)|*.pdf",
                                 wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
+    saveFileDialog.SetFilename(wxString::Format(wxT("%s[%s]"), fValues.GetProtocol(), fValues.GetName()));
     if(saveFileDialog.ShowModal() == wxID_CANCEL) return;
 
     // save the current contents in the file;
@@ -924,9 +1048,11 @@ void MainFrame::FillAllRows()
                 case 7:
                 case 8:
                 case 9:
-                case 10:
-                case 12: {
+                case 10: {
                     // nothing really matters...
+                } break;
+                case 12: {
+                    ch = true;
                 } break;
                 case 13:
                 case 14:
@@ -963,11 +1089,10 @@ void MainFrame::FillAllRows()
 
             m_grid->SetCellValue(i, 8, wxString::Format("%f", activity->GetChValidated()));
 
-            wxColour rowColour = *wxBLACK;
-            if(activity->IsLimitedCH()) { rowColour = *wxRED; }
-            for(int j = 0; j < 9; ++j) m_grid->SetCellTextColour(i, j, rowColour);
+            UpdateRowColour(activity, i);
         }
     }
+    m_grid->Refresh();
 }
 void MainFrame::OnAboutClick(wxCommandEvent& event)
 {
@@ -981,4 +1106,148 @@ void MainFrame::OnAboutClick(wxCommandEvent& event)
     aboutInfo.AddDeveloper("Thales Lima Oliveira (thales.oliveira@ifg.edu.br)");
     wxGenericAboutDialog dlgAbout(aboutInfo, this);
     dlgAbout.ShowModal();
+}
+
+void MainFrame::OnCloseEvent(wxCloseEvent& event)
+{
+    if(IsSaveNeeded())
+        event.Skip(ShowSaveDialog());
+    else
+        event.Skip();
+}
+
+bool MainFrame::ShowSaveDialog()
+{
+    wxMessageDialog msgDialog(this, wxT("Existem dados não gravados no disco.\nDeseja salvar?"), wxT("Atenção!"),
+                              wxYES_NO | wxCANCEL | wxICON_EXCLAMATION);
+    switch(msgDialog.ShowModal()) {
+        case wxID_CANCEL: {
+            return false;
+        } break;
+        case wxID_YES: {
+            FormatValues fValues(m_protocolNumber, m_studentName);
+            wxFileDialog saveFileDialog(this, wxT("Salvar arquivo XML"), "", "", "Arquivo XML (*.xml)|*.xml",
+                                        wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
+            saveFileDialog.SetFilename(wxString::Format(wxT("%s[%s]"), fValues.GetProtocol(), fValues.GetName()));
+            if(saveFileDialog.ShowModal() == wxID_CANCEL) return false;
+            SaveProcess(saveFileDialog.GetPath(), saveFileDialog.GetFilename());
+            return true;
+        } break;
+        case wxID_NO: {
+            return true;
+        } break;
+    }
+
+    return false;
+}
+
+void MainFrame::OnPanelKeyDown(wxKeyEvent& event)
+{
+    if(event.ShiftDown() && event.GetUnicodeKey() == 'E') {
+        wxExecute(wxT("cmd.exe /c py googleDiveAPI.py FindInFolder teste"), wxEXEC_SYNC);
+        wxTextFile txtFile;
+        if(txtFile.Open("foundIDs.txt")) {
+            wxString ids = txtFile.GetFirstLine() + '\n';
+            while(!txtFile.Eof()) { ids += txtFile.GetNextLine() + '\n'; }
+
+            wxMessageBox(wxString::Format("Num IDs: %d\n%s", ids.Freq('\n') - 1, ids));
+            txtFile.Clear();
+            txtFile.Write();
+        }
+    }
+    event.Skip();
+}
+
+void MainFrame::SaveAtDrive(wxString path, wxString fileName)
+{
+    wxArrayString foundIDs;
+    if(HaveFileInDive(fileName, foundIDs)) {
+        wxMessageDialog msgDialog(this, wxT("Esse arquivo existe no Drive.\nDeseja sobrescrever?"), wxT("Atenção!"),
+                                  wxYES_NO | wxICON_EXCLAMATION);
+        switch(msgDialog.ShowModal()) {
+            case wxID_YES: {
+                wxBusyInfo busy(GetBusyInfoFlags(this, wxT("Substituindo arquivo no Drive...")));
+                wxExecute(
+                    wxString::Format("%s Replace \"%s\" \"%s\" \"%s\"", m_runDriveAPI, foundIDs[0], fileName, path),
+                    wxEXEC_SYNC | m_consoleStatus);
+                return;
+            } break;
+            case wxID_NO: {
+                return;
+            } break;
+        }
+    } else {
+        wxBusyInfo busy(GetBusyInfoFlags(this, wxT("Gravando arquivo no Drive...")));
+        wxExecute(wxString::Format("%s Save \"%s\" \"%s\"", m_runDriveAPI, fileName, path),
+                  wxEXEC_SYNC | m_consoleStatus);
+    }
+}
+
+bool MainFrame::HaveFileInDive(wxString fileName, wxArrayString& fileIDs)
+{
+    wxBusyInfo busy(GetBusyInfoFlags(this, wxT("Procurando arquivo no Drive...")));
+    wxExecute(wxString::Format("%s FindInfolder \"%s\"", m_runDriveAPI, fileName), wxEXEC_SYNC | m_consoleStatus);
+
+    wxTextFile txtFile;
+    if(txtFile.Open("foundIDs.txt")) {
+        fileIDs.Add(txtFile.GetFirstLine());
+        while(!txtFile.Eof()) { fileIDs.Add(txtFile.GetNextLine()); }
+
+        if(fileIDs[0] == "") {
+            txtFile.Clear();
+            txtFile.Write();
+            return false;
+
+        } else {
+            txtFile.Clear();
+            txtFile.Write();
+            return true;
+        }
+    }
+
+    return false;
+}
+
+wxBusyInfoFlags MainFrame::GetBusyInfoFlags(wxWindow* parent, wxString message)
+{
+    return wxBusyInfoFlags()
+        .Parent(parent)
+        .Icon(m_ifIcon)
+        .Title(wxString::Format("<b>%s</b>", message))
+        .Text(wxT("Aguarde um momento..."))
+        .Foreground(*wxWHITE)
+        .Background(*wxBLACK)
+        .Transparency(4 * wxALPHA_OPAQUE / 5);
+}
+
+void MainFrame::OnOpenDrive(wxCommandEvent& event)
+{
+    wxString* fileID = new wxString("");
+    wxString* fileName = new wxString("");
+    SearchInDrive driveDialog(this, fileID, fileName);
+    if(driveDialog.ShowModal() == wxID_OK) {
+        wxBusyInfo busy(GetBusyInfoFlags(this, wxT("Baixando processo...")));
+        wxString path = "downloads\\" + *fileName + ".xml";
+        wxExecute(wxString::Format("%s Download \"%s\" \"%s\"", m_runDriveAPI, *fileID, path),
+                  wxEXEC_SYNC | m_consoleStatus);
+        OpenProcess(path);
+    }
+}
+
+void MainFrame::UpdateRowColour(Activity* activity, int rowNumber)
+{
+    wxColour rowColour = *wxBLACK;
+    wxFont txtFont = m_grid->GetDefaultCellFont();
+    if(!activity->IsShownInReport()) { txtFont.MakeItalic(); }
+    if(activity->IsLimitedCH()) { rowColour = wxColour(255, 100, 0); }
+    if(activity->IsRestrictionsIgnored()) { rowColour = wxColour(148, 0, 211); }
+    if(activity->IsInvalidateCH()) { rowColour = wxColour(255, 0, 0); }
+    wxColour disabledRowColour = rowColour;
+    disabledRowColour.MakeDisabled();
+    for(int i = 0; i < 9; ++i) {
+        m_grid->SetCellTextColour(rowNumber, i, activity->IsShownInReport() ? rowColour : disabledRowColour);
+        m_grid->SetCellFont(
+            rowNumber, i,
+            activity->IsShownInReport() ? m_grid->GetDefaultCellFont() : m_grid->GetDefaultCellFont().MakeItalic());
+    }
 }
