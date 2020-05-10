@@ -70,6 +70,7 @@ class MainFrameBaseClass : public wxFrame
     wxPropertyGridManager* m_pgMgr;
     wxPGProperty* m_pgPropItem;
     wxPGProperty* m_pgPropEvent;
+    wxPGProperty* m_pgPropEventDesc;
     wxPGProperty* m_pgPropShiftN;
     wxPGProperty* m_pgPropIFGEvent;
     wxPGProperty* m_pgPropInstitution;
@@ -131,7 +132,7 @@ class MainFrameBaseClass : public wxFrame
                        wxWindowID id = wxID_ANY,
                        const wxString& title = wxT("Avaliador CAAC"),
                        const wxPoint& pos = wxDefaultPosition,
-                       const wxSize& size = wxSize(500, 300),
+                       const wxSize& size = wxSize(800, 600),
                        long style = wxCAPTION | wxRESIZE_BORDER | wxMAXIMIZE_BOX | wxMINIMIZE_BOX | wxSYSTEM_MENU |
                                     wxCLOSE_BOX);
     virtual ~MainFrameBaseClass();

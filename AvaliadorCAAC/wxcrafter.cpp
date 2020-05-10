@@ -156,7 +156,7 @@ MainFrameBaseClass::MainFrameBaseClass(wxWindow* parent,
     wxUnusedVar(m_pgMgrIntArr);
     m_pgMgr =
         new wxPropertyGridManager(m_mainPanel, wxID_ANY, wxDefaultPosition, wxDLG_UNIT(m_mainPanel, wxSize(-1, -1)),
-                                  wxPG_HIDE_MARGIN | wxPG_SPLITTER_AUTO_CENTER | wxPG_BOLD_MODIFIED);
+                                  wxPG_DESCRIPTION | wxPG_HIDE_MARGIN | wxPG_SPLITTER_AUTO_CENTER | wxPG_BOLD_MODIFIED);
 
     boxSizerLvl3_1->Add(m_pgMgr, 1, wxALL | wxEXPAND, WXC_FROM_DIP(5));
 
@@ -184,40 +184,60 @@ MainFrameBaseClass::MainFrameBaseClass(wxWindow* parent,
     m_pgMgrArr.Add(wxT("XV - Participação em órgãos e entidades estudantis, de classe, sindicais ou comunitárias."));
     m_pgMgrArr.Add(wxT("XVI - Realização de trabalho comunitário."));
     m_pgMgrArr.Add(wxT("XVII - Participação como ouvinte em defesas de trabalhos acadêmicos."));
+    m_pgMgrArr.Add(wxT("Atividade não pontuada"));
     m_pgPropItem = m_pgMgr->Append(new wxEnumProperty(wxT("Item"), wxPG_LABEL, m_pgMgrArr, m_pgMgrIntArr, 0));
-    m_pgPropItem->SetHelpString(wxT(""));
+    m_pgPropItem->SetHelpString(
+        wxT("Tipo de atividade efetuada pelo aluno de acordo com as resoluções n°16 e n°20 de 2011.\nCaso a atividade "
+            "não se enquadre, deve ser selecionada a opção \"Atividade não pontuada\"."));
     m_pgPropItem->SetEditor(wxT("Choice"));
 
     m_pgPropEvent = m_pgMgr->Append(new wxLongStringProperty(wxT("Evento"), wxPG_LABEL, wxT("Nome do evento...")));
-    m_pgPropEvent->SetHelpString(wxT(""));
+    m_pgPropEvent->SetHelpString(wxT("Nome do evento relacionado à atividade."));
+
+    m_pgPropEventDesc = m_pgMgr->Append(new wxLongStringProperty(wxT("Descrição do evento"), wxPG_LABEL, wxT("")));
+    m_pgPropEventDesc->SetHelpString(
+        wxT("Descrição do evento. Nesse campo devem ser colocados os detalhes da atividade exercida no evento. Deixe "
+            "em branco para não ser exibido no relatório de avaliação.\nEx.: \"Participação no evento\", "
+            "\"Apresentação de trabalho intitulado...\""));
 
     m_pgPropShiftN = m_pgMgr->Append(new wxIntProperty(wxT("Turno"), wxPG_LABEL, 1));
-    m_pgPropShiftN->SetHelpString(wxT(""));
+    m_pgPropShiftN->SetHelpString(wxT(
+        "Aqui são inseridas a quantidade de Turnos, Apresentações ou Participações, de acordo com o item definido."));
 
     m_pgPropIFGEvent = m_pgMgr->Append(new wxBoolProperty(wxT("Evento do IFG"), wxPG_LABEL, 1));
-    m_pgPropIFGEvent->SetHelpString(wxT(""));
+    m_pgPropIFGEvent->SetHelpString(wxT("Desmarque essa opção caso o evento NÃO seja promovido pelo IFG."));
 
     m_pgPropInstitution =
         m_pgMgr->Append(new wxLongStringProperty(wxT("Instituição"), wxPG_LABEL, wxT("Nome da instituição...")));
-    m_pgPropInstitution->SetHelpString(wxT(""));
+    m_pgPropInstitution->SetHelpString(wxT("Instituição promotora do evento.\nEx.: IFG"));
 
     m_pgPropDate = m_pgMgr->Append(new wxStringProperty(wxT("Data do evento"), wxPG_LABEL, wxT("-")));
-    m_pgPropDate->SetHelpString(wxT(""));
+    m_pgPropDate->SetHelpString(
+        wxT("Período ou data de ocorrência do evento.\nEx.: \"09/05/2020\", \"22/03/2020 a 09/05/2020\""));
 
     m_pgPropCH = m_pgMgr->Append(new wxFloatProperty(wxT("Carga horária (h)"), wxPG_LABEL, 0));
-    m_pgPropCH->SetHelpString(wxT(""));
+    m_pgPropCH->SetHelpString(wxT("Carga horária, em horas, que consta no documento comprobatório.\nObs.: Não devem "
+                                  "ser descontados valores nesse campo. O programa irá automaticamente calcular as "
+                                  "restrições conforme as resoluções n°16 ou n°20 de 2011."));
 
     m_pgPropInvalidate = m_pgMgr->Append(new wxBoolProperty(wxT("Invalidar CH"), wxPG_LABEL, 0));
-    m_pgPropInvalidate->SetHelpString(wxT(""));
+    m_pgPropInvalidate->SetHelpString(
+        wxT("Marque essa opção caso a carga horária deva ser invalidada.\nEx.: Documento duplicado\nObs.: Atividades "
+            "com carga horária invalidada não serão contabilizadas nas restrições impostas pelas resoluções n°16 ou "
+            "n°20 de 2011."));
 
     m_pgPropShowInReport = m_pgMgr->Append(new wxBoolProperty(wxT("Mostrar no relatório"), wxPG_LABEL, 1));
-    m_pgPropShowInReport->SetHelpString(wxT(""));
+    m_pgPropShowInReport->SetHelpString(
+        wxT("Desmarque essa opção para que essa atividade não seja exibida no relatório.\nObs.: Mesmo que a atividade "
+            "não seja exibida, as restrições que ela implica serão contabilizadas."));
 
     m_pgPropIgnoreRestrictions = m_pgMgr->Append(new wxBoolProperty(wxT("Ignorar restrições"), wxPG_LABEL, 0));
-    m_pgPropIgnoreRestrictions->SetHelpString(wxT(""));
+    m_pgPropIgnoreRestrictions->SetHelpString(
+        wxT("Marque essa opção para que as restrições dessa atividade sejam desconsideradas."));
 
     m_pgPropObs = m_pgMgr->Append(new wxLongStringProperty(wxT("Observações"), wxPG_LABEL, wxT("")));
-    m_pgPropObs->SetHelpString(wxT(""));
+    m_pgPropObs->SetHelpString(
+        wxT("Observações da atividade. Deixe em branco para não ser exibido no relatório de avaliação."));
     m_pgMgr->SetMinSize(wxSize(400, -1));
 
     wxBoxSizer* boxSizerLvl4_1 = new wxBoxSizer(wxHORIZONTAL);
@@ -324,7 +344,7 @@ MainFrameBaseClass::MainFrameBaseClass(wxWindow* parent,
 
     SetName(wxT("MainFrameBaseClass"));
     SetMinClientSize(wxSize(600, 400));
-    SetSize(wxDLG_UNIT(this, wxSize(500, 300)));
+    SetSize(wxDLG_UNIT(this, wxSize(800, 600)));
     if(GetSizer()) { GetSizer()->Fit(this); }
     if(GetParent()) {
         CentreOnParent(wxBOTH);

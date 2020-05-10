@@ -14,6 +14,8 @@
   <Description/>
   <Dependencies/>
   <VirtualDirectory Name="src">
+    <File Name="Utils.cpp"/>
+    <File Name="EventList.cpp"/>
     <File Name="FormatValues.cpp"/>
     <File Name="SearchInDrive.cpp"/>
     <File Name="XMLParser.cpp"/>
@@ -25,6 +27,8 @@
     <File Name="wxcrafter_bitmaps.cpp"/>
   </VirtualDirectory>
   <VirtualDirectory Name="include">
+    <File Name="Utils.h"/>
+    <File Name="EventList.h"/>
     <File Name="FormatValues.h"/>
     <File Name="SearchInDrive.h"/>
     <File Name="XMLParser.h"/>

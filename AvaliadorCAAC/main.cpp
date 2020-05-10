@@ -2,7 +2,9 @@
 #include <wx/event.h>
 #include <wx/image.h>
 #include "MainFrame.h"
+#include "Utils.h"
 
+Utils Utils::s_utilsInstance;
 // Define the MainApp
 class MainApp : public wxApp
 {
@@ -15,6 +17,8 @@ class MainApp : public wxApp
         // Add the common image handlers
         wxImage::AddHandler(new wxPNGHandler);
         wxImage::AddHandler(new wxJPEGHandler);
+        
+        Utils::Get().Load();
 
         MainFrame *mainFrame = new MainFrame(NULL);
         mainFrame->SetIcon(wxICON(aaaaIFIcon));

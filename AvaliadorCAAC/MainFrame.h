@@ -14,9 +14,11 @@
 
 #include "NewProcess.h"
 #include "XMLParser.h"
+#include "EventList.h"
 
-#define MY_APP_VERSION_STRING "0.1-beta"
+#define MY_APP_VERSION_STRING "0.2-beta"
 
+class Utils;
 class PdfPage;
 class SearchInDrive;
 class FormatValues;
@@ -34,6 +36,7 @@ class Activity
     void SetChValidated(double chValidated) { this->m_chValidated = chValidated; }
     void SetDate(const wxString& date) { this->m_date = date; }
     void SetEventName(const wxString& eventName) { this->m_eventName = eventName; }
+    void SetEventDescription(const wxString& eventDesc) { this->m_eventDesc = eventDesc; }
     void SetIfgEvent(bool ifgEvent) { this->m_ifgEvent = ifgEvent; }
     void SetInstitutionName(const wxString& institutionName) { this->m_institutionName = institutionName; }
     void SetItemCode(int itemCode) { this->m_itemCode = itemCode; }
@@ -42,6 +45,7 @@ class Activity
     double GetChValidated() const { return m_chValidated; }
     const wxString& GetDate() const { return m_date; }
     const wxString& GetEventName() const { return m_eventName; }
+    const wxString& GetEventDescription() const { return m_eventDesc; }
     bool IsIFGEvent() const { return m_ifgEvent; }
     const wxString& GetInstitutionName() const { return m_institutionName; }
     int GetItemCode() const { return m_itemCode; }
@@ -62,6 +66,7 @@ class Activity
     int m_id = 0;
     int m_itemCode = 0;
     wxString m_eventName = wxT("Nome do evento...");
+    wxString m_eventDesc = "";
     double m_shiftNumber = 1.0;
     bool m_ifgEvent = true;
     wxString m_institutionName = wxT("Nome da instituição...");
@@ -154,6 +159,8 @@ class MainFrame : public MainFrameBaseClass
     double m_totalValCH = 0.0;
 
     bool m_saveNeeded = false;
+    
+    EventList m_eventList;
 
     const wxString m_runDriveAPI = "cmd.exe /c py googleDiveAPI.py";
     const int m_consoleStatus = wxEXEC_HIDE_CONSOLE;

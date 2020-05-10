@@ -4,6 +4,7 @@
 #include "MainFrame.h"
 #include "PdfPage.h"
 #include "SearchInDrive.h"
+#include "Utils.h"
 
 MainFrame::MainFrame(wxWindow* parent) : MainFrameBaseClass(parent) { InitFrame(); }
 
@@ -26,10 +27,15 @@ void MainFrame::InitFrame()
     m_ifIcon.LoadFile("logo128.png", wxBITMAP_TYPE_PNG);
     EnableAll(false);
     BuildGrid();
-    m_pgPropIFGEvent->SetAttribute(wxPG_BOOL_USE_CHECKBOX, true);
+    m_pgPropIFGEvent->SetAttribute(wxPG_BOOL_USE_CHECKBOX, true);    
     m_pgPropInvalidate->SetAttribute(wxPG_BOOL_USE_CHECKBOX, true);
     m_pgPropShowInReport->SetAttribute(wxPG_BOOL_USE_CHECKBOX, true);
     m_pgPropIgnoreRestrictions->SetAttribute(wxPG_BOOL_USE_CHECKBOX, true);
+    
+    // Load Event list from drive
+    if(m_eventList.Load(this)) {
+        m_pgPropEvent->SetAttribute(wxPG_ATTR_AUTOCOMPLETE, m_eventList.GetEventList());
+    }
 }
 
 void MainFrame::OnExit(wxCommandEvent& event)
@@ -141,6 +147,11 @@ bool MainFrame::OpenProcess(wxString path)
         auto eventName = activityNode->first_node("Evento");
         if(!eventName) return false;
         activity->SetEventName(wxString::FromUTF8(eventName->value()));
+        // Descricao evento
+        auto eventDesc = activityNode->first_node("DescricaoEvento");
+        if(eventDesc){
+            activity->SetEventDescription(wxString::FromUTF8(eventDesc->value()));
+        }
         // Num shifts
         activity->SetShiftNumber(XMLParser::GetNodeValueDouble(activityNode, "NumTurnos"));
         // Evento IFG
@@ -197,6 +208,13 @@ void MainFrame::OnSave(wxCommandEvent& event)
     if(saveFileDialog.ShowModal() == wxID_CANCEL) return;
 
     SaveProcess(saveFileDialog.GetPath(), saveFileDialog.GetFilename());
+    
+    // Get event list to save
+    wxArrayString eventListArray;
+    for(auto it = m_activityList.begin(), itEnd = m_activityList.end(); it != itEnd; ++it) {
+        eventListArray.Add((*it)->GetEventName());
+    }
+    m_eventList.Save(this, eventListArray);
 }
 
 bool MainFrame::SaveProcess(wxString path, wxString fileName)
@@ -244,6 +262,9 @@ bool MainFrame::SaveProcess(wxString path, wxString fileName)
         // Evento
         rapidxml::xml_node<>* eventName = XMLParser::AppendNode(doc, activityNode, "Evento");
         XMLParser::SetNodeValue(doc, eventName, activity->GetEventName());
+        // Descricao do evento
+        rapidxml::xml_node<>* eventDesc = XMLParser::AppendNode(doc, activityNode, "DescricaoEvento");
+        XMLParser::SetNodeValue(doc, eventDesc, activity->GetEventDescription());
         // Turnos/apresentação/participação
         rapidxml::xml_node<>* numShift = XMLParser::AppendNode(doc, activityNode, "NumTurnos");
         XMLParser::SetNodeValue(doc, numShift, activity->GetShiftNumber());
@@ -289,6 +310,7 @@ void MainFrame::EnableAll(bool enable)
     m_pgMgr->Enable(enable);
     m_pgPropItem->Enable(enable);
     m_pgPropEvent->Enable(enable);
+    m_pgPropEventDesc->Enable(enable);
     m_pgPropShiftN->Enable(enable);
     m_pgPropIFGEvent->Enable(enable);
     m_pgPropInstitution->Enable(enable);
@@ -496,6 +518,10 @@ void MainFrame::ValidateCH(Activity* activity)
                     }
 
                 } break;
+                case 18: {
+                    activity->SetChValidated(0.0);
+                    activity->SetChPresented(activity->GetChPresented());
+                } break;
                 default:
                     break;
             }
@@ -541,6 +567,7 @@ void MainFrame::FillPG(int id)
         if(activity->GetId() == id) {
             m_pgPropItem->SetValueFromInt(activity->GetItemCode());
             m_pgPropEvent->SetValueFromString(activity->GetEventName());
+            m_pgPropEventDesc->SetValueFromString(activity->GetEventDescription());
             m_pgPropShiftN->SetValueFromInt(activity->GetShiftNumber());
             m_pgPropIFGEvent->SetValueFromInt(activity->IsIFGEvent());
             m_pgPropInstitution->SetValueFromString(activity->GetInstitutionName());
@@ -615,6 +642,10 @@ void MainFrame::UpdateChangedPG()
             m_pgPropShiftN->Enable(true);
             shiftN = true;
         } break;
+        case 18: {
+            m_pgPropCH->Enable(true);
+            ch = true;
+        }
         default:
             break;
     }
@@ -635,6 +666,7 @@ void MainFrame::UpdateChangedPG()
         // Fill the current activity with new informations
         currentActivity->SetItemCode(m_pgPropItem->GetValue().GetInteger());
         currentActivity->SetEventName(m_pgPropEvent->GetValue().GetString());
+        currentActivity->SetEventDescription(m_pgPropEventDesc->GetValue().GetString());
         currentActivity->SetShiftNumber(m_pgPropShiftN->GetValue().GetDouble());
         currentActivity->SetIfgEvent(m_pgPropIFGEvent->GetValue().GetBool());
         currentActivity->SetInstitutionName(m_pgPropInstitution->GetValue().GetString());
@@ -933,7 +965,9 @@ void MainFrame::GenerateReport(wxCommandEvent& event)
         Activity* activity = *it;
         if(activity->IsShownInReport()) {
             wxString activityStr = fTBtxt;
-            activityStr.Replace("\\event", activity->GetEventName());
+            wxString eventName = activity->GetEventName();
+            if(activity->GetEventDescription() != "") eventName += " - " + activity->GetEventDescription();
+            activityStr.Replace("\\event", eventName);
             activityStr.Replace("\\institution", activity->GetInstitutionName());
             activityStr.Replace("\\date", activity->GetDate());
             activityStr.Replace("\\requiredCH", wxString::FromDouble(activity->GetChPresented()));
@@ -1062,6 +1096,9 @@ void MainFrame::FillAllRows()
                 case 17: {
                     shiftN = true;
                 } break;
+                case 18: {
+                    ch = true;
+                } break;
                 default:
                     break;
             }
@@ -1144,16 +1181,8 @@ bool MainFrame::ShowSaveDialog()
 void MainFrame::OnPanelKeyDown(wxKeyEvent& event)
 {
     if(event.ShiftDown() && event.GetUnicodeKey() == 'E') {
-        wxExecute(wxT("cmd.exe /c py googleDiveAPI.py FindInFolder teste"), wxEXEC_SYNC);
-        wxTextFile txtFile;
-        if(txtFile.Open("foundIDs.txt")) {
-            wxString ids = txtFile.GetFirstLine() + '\n';
-            while(!txtFile.Eof()) { ids += txtFile.GetNextLine() + '\n'; }
-
-            wxMessageBox(wxString::Format("Num IDs: %d\n%s", ids.Freq('\n') - 1, ids));
-            txtFile.Clear();
-            txtFile.Write();
-        }
+        EventList eventList;
+        eventList.Load(this);
     }
     event.Skip();
 }

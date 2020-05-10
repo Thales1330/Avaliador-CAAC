@@ -61,7 +61,6 @@ wxBusyInfoFlags SearchInDrive::GetBusyInfoFlags(wxWindow* parent, wxString messa
 
 void SearchInDrive::DoSearch()
 {
-    
     wxString protocolNum = m_textCtrlProcessNumber->GetValue();
     wxString studentName = m_textCtrlStudentName->GetValue();
 
@@ -74,17 +73,41 @@ void SearchInDrive::DoSearch()
 
     wxTextFile txtFileNames;
     wxTextFile txtFileIDs;
+    int numEventList = -1;
+    int count = 0;
+
+    // Skip EventList file
     m_foundNames.Clear();
     if(txtFileNames.Open("foundNames.txt")) {
-        m_foundNames.Add(txtFileNames.GetFirstLine());
-        while(!txtFileNames.Eof()) { m_foundNames.Add(txtFileNames.GetNextLine()); }
+        wxString name = txtFileNames.GetFirstLine();
+        if(name == "EventList.xml")
+            numEventList = count;
+        else
+            m_foundNames.Add(name);
+        count++;
+        while(!txtFileNames.Eof()) {
+            name = txtFileNames.GetNextLine();
+            if(name == "EventList.xml")
+                numEventList = count;
+            else
+                m_foundNames.Add(name);
+            count++;
+        }
         txtFileNames.Clear();
         txtFileNames.Write();
+        wxString names = "";
     }
     m_foundIDs.Clear();
+    count = 0;
     if(txtFileIDs.Open("foundIDs.txt")) {
-        m_foundIDs.Add(txtFileIDs.GetFirstLine());
-        while(!txtFileIDs.Eof()) { m_foundIDs.Add(txtFileIDs.GetNextLine()); }
+        wxString id = txtFileIDs.GetFirstLine();
+        if(count != numEventList) m_foundIDs.Add(id);
+        count++;
+        while(!txtFileIDs.Eof()) {
+            id = txtFileIDs.GetNextLine();
+            if(count != numEventList) m_foundIDs.Add(id);
+            count++;
+        }
         txtFileIDs.Clear();
         txtFileIDs.Write();
     }
