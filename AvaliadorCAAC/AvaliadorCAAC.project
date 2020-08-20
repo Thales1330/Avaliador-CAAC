@@ -96,19 +96,19 @@
         <SearchPaths/>
       </Completion>
     </Configuration>
-    <Configuration Name="Release" CompilerType="MinGW 64bit ( MSYS2 64bit )" DebuggerType="GNU gdb debugger" Type="Executable" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="append" BuildResWithGlobalSettings="append">
+    <Configuration Name="Release" CompilerType="MinGW ( TDM-GCC-32 )" DebuggerType="GNU gdb debugger" Type="Executable" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="append" BuildResWithGlobalSettings="append">
       <Compiler Options="-O2;-std=c++17;-Wall;$(shell wx-config --cflags)" C_Options="-O2;-Wall" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
         <IncludePath Value="."/>
-        <IncludePath Value="C:\Users\thale\Documents\GitHub\CAAC\wxPdfDocument"/>
+        <IncludePath Value="C:\Users\thale\Documents\GitHub\CAAC\wxPDFDocument\wxPDFDocument"/>
         <Preprocessor Value="NDEBUG"/>
         <Preprocessor Value="UNICODE"/>
       </Compiler>
       <Linker Options="$(shell wx-config --libs std,adv,ribbon,aui,propgrid,richtext,stc);-mwindows;-static" Required="yes">
-        <LibraryPath Value="C:\Users\thale\Documents\GitHub\CAAC\wxPdfDocument\Release"/>
-        <Library Value="libwxPdfDocument"/>
+        <LibraryPath Value="C:\Users\thale\Documents\GitHub\CAAC\wxPDFDocument\build-Release\lib"/>
+        <Library Value="wxPDFDocument"/>
       </Linker>
       <ResourceCompiler Options="$(shell wx-config --rcflags)" Required="no"/>
-      <General OutputFile="$(IntermediateDirectory)/AvaliadorCAAC" IntermediateDirectory="./Release_x64" Command="./AvaliadorCAAC" CommandArguments="" UseSeparateDebugArgs="no" DebugArguments="" WorkingDirectory="$(IntermediateDirectory)" PauseExecWhenProcTerminates="no" IsGUIProgram="yes" IsEnabled="yes"/>
+      <General OutputFile="$(IntermediateDirectory)/AvaliadorCAAC" IntermediateDirectory="./Release_x32" Command="./AvaliadorCAAC" CommandArguments="" UseSeparateDebugArgs="no" DebugArguments="" WorkingDirectory="$(IntermediateDirectory)" PauseExecWhenProcTerminates="no" IsGUIProgram="yes" IsEnabled="yes"/>
       <BuildSystem Name="Default"/>
       <Environment EnvVarSetName="&lt;Use Defaults&gt;" DbgSetName="&lt;Use Defaults&gt;">
         <![CDATA[]]>

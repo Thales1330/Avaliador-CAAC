@@ -4,6 +4,7 @@
 .codelite/
 AvaliadorCAAC/Debug_x64/
 AvaliadorCAAC/Release_x64/
+AvaliadorCAAC/Release_x32/
 
 # Compiled source #
 ###################
