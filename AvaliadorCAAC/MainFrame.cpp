@@ -926,6 +926,7 @@ void MainFrame::GenerateReport(wxCommandEvent& event)
     f.Read(ctxt, len);
     ctxt[len] = '\0';
     wxString txt(ctxt, *wxConvCurrent);
+    txt.Replace("\\courseLevel", m_resolution == N_16 ? wxT("de Graduação") : wxT("Técnicos"));
     txt.Replace("\\resNumDate", m_resolution == N_16 ? wxT("16 de 26/12/2011") : wxT("20 de 26/12/2011"));
     txt.Replace("\\hours", wxString::FromDouble(m_totalValCH));
     txt.Replace("\\studentName", m_studentName);
