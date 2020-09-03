@@ -1,0 +1,7 @@
+<tr>
+<td align="left" valign="middle">\event</td>
+<td align="center" valign="middle">\institution</td>
+<td align="center" valign="middle">\date</td>
+<td align="center" valign="middle">\requiredCH</td>
+<td align="center" valign="middle">\validatedCH</td>
+</tr>

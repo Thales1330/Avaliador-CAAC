@@ -16,7 +16,7 @@
 #include "XMLParser.h"
 #include "EventList.h"
 
-#define MY_APP_VERSION_STRING "0.2-beta"
+#define MY_APP_VERSION_STRING "0.3-beta"
 
 class Utils;
 class PdfPage;

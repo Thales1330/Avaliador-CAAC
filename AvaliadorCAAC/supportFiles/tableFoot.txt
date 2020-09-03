@@ -1,0 +1,7 @@
+<tr>
+<td align="center" valign="middle" colspan="3"><font size="12">TOTAL</font></td>
+<td align="center" valign="middle"><font size="12">\totalReqCH</font></td>
+<td align="center" valign="middle"><font size="12">\totalValCH</font></td>
+</tr>
+</tbody>
+</table>
