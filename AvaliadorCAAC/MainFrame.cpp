@@ -474,6 +474,7 @@ void MainFrame::ValidateCH(Activity* activity)
                     if((accCH > m_chCompActivity * 0.4) && !activity->IsRestrictionsIgnored()) {
                         double partialCH = m_chCompActivity * 0.4 - oldCH;
                         if(partialCH > 0) {
+                            if(partialCH < 0.5) partialCH = 0.0; // Remove garbage result (i.e. when "m_chCompActivity * 0.4 - oldCH" get very close to zero)
                             activity->SetChValidated(partialCH);
                             activity->SetLimitedCH(true);
                         } else {
