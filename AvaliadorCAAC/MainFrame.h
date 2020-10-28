@@ -16,7 +16,7 @@
 #include "XMLParser.h"
 #include "EventList.h"
 
-#define MY_APP_VERSION_STRING "0.3.1-beta"
+#define MY_APP_VERSION_STRING "0.3.2-beta"
 
 class Utils;
 class PdfPage;
@@ -61,6 +61,7 @@ class Activity
 
     void SetLimitedCH(bool limitedCH) { this->m_limitedCH = limitedCH; }
     bool IsLimitedCH() const { return m_limitedCH; }
+    
 
    protected:
     int m_id = 0;
@@ -137,6 +138,9 @@ class MainFrame : public MainFrameBaseClass
     virtual bool ShowSaveDialog();
     virtual bool IsSaveNeeded() { return m_saveNeeded; }
     virtual void SaveNeeded(bool saveNeeded = true) { m_saveNeeded = saveNeeded; }
+    
+    long ConvertPropToItemCode(const long& id, const Resolution& resolution);
+    long ConvertItemCodeToProp(const long& id, const Resolution& resolution);
 
     // Drive mathods
     wxBusyInfoFlags GetBusyInfoFlags(wxWindow* parent, wxString message);
@@ -165,5 +169,8 @@ class MainFrame : public MainFrameBaseClass
     const wxString m_runDriveAPI = "cmd.exe /c py googleDiveAPI.py";
     const int m_consoleStatus = wxEXEC_HIDE_CONSOLE;
     wxIcon m_ifIcon;
+    
+    wxArrayString m_itensResN16;
+    wxArrayString m_itensResN20;
 };
 #endif  // MAINFRAME_H

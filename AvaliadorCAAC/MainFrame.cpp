@@ -36,6 +36,56 @@ void MainFrame::InitFrame()
     if(m_eventList.Load(this)) {
         m_pgPropEvent->SetAttribute(wxPG_ATTR_AUTOCOMPLETE, m_eventList.GetEventList());
     }
+    
+    // Initialize item list
+    // Res 16
+    m_itensResN20.Add(wxT("Escolha o item..."));
+    m_itensResN20.Add(wxT("I - Visitas técnicas"));
+    m_itensResN20.Add(wxT("II - Atividade prática de campo"));
+    m_itensResN20.Add(
+        wxT("III - Participação em eventos técnicos, culturais, científicos, acadêmicos, artísticos e esportivos."));
+    m_itensResN20.Add(wxT("IV - Participação em comissão organizadora de eventos institucionais e outros."));
+    m_itensResN20.Add(wxT("V - Apresentação de trabalhos em feiras, congressos, mostras, seminários e outros."));
+    m_itensResN20.Add(wxT("VI - Intérprete de línguas emeventos institucionais e outros. "));
+    m_itensResN20.Add(wxT("VII - Monitorias por período mínimo de um semestre letivo."));
+    m_itensResN20.Add(wxT("VIII - Participação em projetos e programas de iniciação científica e tecnológica como aluno "
+                       "do projeto, bolsista ou voluntário."));
+    m_itensResN20.Add(wxT("IX - Participação em projetos de ensino, pesquisa e extensão com duração mínima de um "
+                       "semestre letivo."));
+    m_itensResN20.Add(wxT("X - Cursos e minicursos."));
+    m_itensResN20.Add(wxT("XI - Estágio curricular não obrigatório igual ou superior a cem horas"));
+    m_itensResN20.Add(wxT("XII - Participação como representante de turma por um período mínimo de um semestre letivo"));
+    m_itensResN20.Add(wxT("XIII - Participação como representante discente nas instâncias da Instituição por um período "
+                       "mínimo de um semestre letivo."));
+    m_itensResN20.Add(wxT("XIV - Participação em órgãos e entidades estudantis, de classe, sindicais ou comunitárias."));
+    m_itensResN20.Add(wxT("XV - Realização de trabalho comunitário."));
+    m_itensResN20.Add(wxT("XVI - Atividades profissionais comprovadas na área de atuação do curso."));
+    m_itensResN20.Add(wxT("Atividade não pontuada"));
+    
+    // Res 20
+    m_itensResN16.Add(wxT("Escolha o item..."));
+    m_itensResN16.Add(wxT("I - Visitas técnicas"));
+    m_itensResN16.Add(wxT("II - Atividade prática de campo"));
+    m_itensResN16.Add(
+        wxT("III - Participação em eventos técnicos, culturais, científicos, acadêmicos, artísticos e esportivos."));
+    m_itensResN16.Add(wxT("IV - Participação em comissão organizadora de eventos institucionais e outros."));
+    m_itensResN16.Add(wxT("V - Apresentação de trabalhos em feiras, congressos, mostras, seminários e outros."));
+    m_itensResN16.Add(wxT("VI - Intérprete de línguas emeventos institucionais e outros. "));
+    m_itensResN16.Add(wxT("VII - Monitorias por período mínimo de um semestre letivo."));
+    m_itensResN16.Add(wxT("VIII - Participação em projetos e programas de iniciação científica e tecnológica como aluno "
+                       "titular do projeto, bolsista ou voluntário."));
+    m_itensResN16.Add(wxT("IX - Participação em programa de iniciação a docência."));
+    m_itensResN16.Add(wxT("X - Participação em projetos de ensino, pesquisa e extensão com duração 60 horas mínima de um "
+                       "semestre letivo."));
+    m_itensResN16.Add(wxT("XI - Cursos e minicursos."));
+    m_itensResN16.Add(wxT("XII - Estágio curricular não obrigatório igual ou superior a cem horas"));
+    m_itensResN16.Add(wxT("XIII - Participação como representante de turma por um período mínimo de um semestre letivo"));
+    m_itensResN16.Add(wxT("XIV - Participação como representante discente nas instâncias da Instituição por um período "
+                       "mínimo de um semestre letivo."));
+    m_itensResN16.Add(wxT("XV - Participação em órgãos e entidades estudantis, de classe, sindicais ou comunitárias."));
+    m_itensResN16.Add(wxT("XVI - Realização de trabalho comunitário."));
+    m_itensResN16.Add(wxT("XVII - Participação como ouvinte em defesas de trabalhos acadêmicos."));
+    m_itensResN16.Add(wxT("Atividade não pontuada"));
 }
 
 void MainFrame::OnExit(wxCommandEvent& event)
@@ -52,9 +102,19 @@ void MainFrame::OnNew(wxCommandEvent& event)
         SaveNeeded();
 
     NewProcess process(this, &m_protocolNumber, &m_studentName, &m_numDocs, &m_resolution);
+    
     if(process.ShowModal() == wxID_OK) {
         ClearAll();
         EnableAll();
+        
+        auto choices = m_pgPropItem->GetChoices();
+        choices.Clear();
+        if(m_resolution == N_16)
+            choices.Set(m_itensResN16);
+        else if(m_resolution == N_20)
+            choices.Set(m_itensResN20);
+        
+        m_pgPropItem->SetChoices(choices);
 
         wxMessageDialog dialog(this,
                                wxT("Deseja buscar o aluno no Drive?\nCaso o aluno já possua processos anteriores os "
@@ -90,6 +150,7 @@ void MainFrame::OnNew(wxCommandEvent& event)
                 for(auto it = m_activityList.begin(), itEnd = m_activityList.end(); it != itEnd; ++it) {
                     Activity* activity = *it;
                     activity->SetShowInReport(false);
+                    if(m_index <= activity->GetId()) m_index = activity->GetId() + 1; // Set m_index to the higher value
                 }
             }
         }
@@ -187,6 +248,15 @@ bool MainFrame::OpenProcess(wxString path)
 
         activityNode = activityNode->next_sibling("Atividade");
     }
+    
+    auto choices = m_pgPropItem->GetChoices();
+    choices.Clear();
+    if(m_resolution == N_16)
+        choices.Set(m_itensResN16);
+    else if(m_resolution == N_20)
+        choices.Set(m_itensResN20);
+    
+    m_pgPropItem->SetChoices(choices);
 
     FillAllRows();
     ValidateAllActivities();
@@ -194,7 +264,7 @@ bool MainFrame::OpenProcess(wxString path)
     UpdateCH();
 
     m_staticTextProcessNumber->SetLabel(wxT("Processo: ") + m_protocolNumber);
-    m_staticTextStudentName->SetLabel(wxT("Aluno: ") + m_studentName);
+    m_staticTextStudentName->SetLabel(wxT("Aluno: ") + m_studentName);    
 
     return true;
 }
@@ -412,6 +482,7 @@ void MainFrame::ValidateCH(Activity* activity)
     double chLanguage = 0.0;
     double chCourses = 0.0;
     double chComWork = 0.0;
+    double chProfActWork = 0.0;
     double chTCC = 0.0;
     double chEventNonIFG = 0.0;
 
@@ -454,7 +525,8 @@ void MainFrame::ValidateCH(Activity* activity)
                 } break;
                 case 6:
                 case 11:
-                case 16: {
+                case 16:
+                case 19: {
                     double ch = activity->GetChPresented();
                     double oldCH = 0.0;
                     double accCH = 0.0;
@@ -470,6 +542,11 @@ void MainFrame::ValidateCH(Activity* activity)
                         oldCH = chComWork;
                         chComWork += ch;
                         accCH = chComWork;
+                    }
+                     else if(activity->GetItemCode() == 19) {
+                        oldCH = chProfActWork;
+                        chProfActWork += ch;
+                        accCH = chProfActWork;
                     }
                     if((accCH > m_chCompActivity * 0.4) && !activity->IsRestrictionsIgnored()) {
                         double partialCH = m_chCompActivity * 0.4 - oldCH;
@@ -566,7 +643,7 @@ void MainFrame::FillPG(int id)
     for(auto it = m_activityList.begin(), itEnd = m_activityList.end(); it != itEnd; ++it) {
         Activity* activity = *it;
         if(activity->GetId() == id) {
-            m_pgPropItem->SetValueFromInt(activity->GetItemCode());
+            m_pgPropItem->SetValueFromInt(ConvertItemCodeToProp(activity->GetItemCode(), m_resolution));
             m_pgPropEvent->SetValueFromString(activity->GetEventName());
             m_pgPropEventDesc->SetValueFromString(activity->GetEventDescription());
             m_pgPropShiftN->SetValueFromInt(activity->GetShiftNumber());
@@ -591,7 +668,7 @@ void MainFrame::UpdateChangedPG()
     bool ifgEvent = false;
     bool ch = false;
 
-    switch(m_pgPropItem->GetValue().GetInteger()) {
+    switch(ConvertPropToItemCode(m_pgPropItem->GetValue().GetInteger(), m_resolution)) {
         case 0: {
             return;
         } break;
@@ -618,7 +695,8 @@ void MainFrame::UpdateChangedPG()
         } break;
         case 6:
         case 11:
-        case 16: {
+        case 16:
+        case 19: {
             m_pgPropCH->Enable(true);
             ch = true;
         } break;
@@ -665,7 +743,7 @@ void MainFrame::UpdateChangedPG()
         }
 
         // Fill the current activity with new informations
-        currentActivity->SetItemCode(m_pgPropItem->GetValue().GetInteger());
+        currentActivity->SetItemCode(ConvertPropToItemCode(m_pgPropItem->GetValue().GetInteger(), m_resolution));
         currentActivity->SetEventName(m_pgPropEvent->GetValue().GetString());
         currentActivity->SetEventDescription(m_pgPropEventDesc->GetValue().GetString());
         currentActivity->SetShiftNumber(m_pgPropShiftN->GetValue().GetDouble());
@@ -1078,7 +1156,8 @@ void MainFrame::FillAllRows()
                 } break;
                 case 6:
                 case 11:
-                case 16: {
+                case 16:
+                case 19: {
                     ch = true;
                 } break;
                 case 7:
@@ -1105,7 +1184,7 @@ void MainFrame::FillAllRows()
                     break;
             }
 
-            m_pgPropItem->SetValueFromInt(activity->GetItemCode());
+            m_pgPropItem->SetValueFromInt(ConvertItemCodeToProp(activity->GetItemCode(), m_resolution));
             m_grid->SetCellValue(i, 1, m_pgPropItem->GetValueAsString());
 
             m_grid->SetCellValue(i, 2, activity->GetEventName());
@@ -1281,4 +1360,42 @@ void MainFrame::UpdateRowColour(Activity* activity, int rowNumber)
             rowNumber, i,
             activity->IsShownInReport() ? m_grid->GetDefaultCellFont() : m_grid->GetDefaultCellFont().MakeItalic());
     }
+}
+
+long MainFrame::ConvertPropToItemCode(const long& id, const Resolution& resolution)
+{
+    if(resolution == N_16) {
+        return id;
+    } else if(resolution == N_20)
+    {
+        if(id < 9)
+            return id;
+        else if(id < 16) {
+            return id + 1;
+        }
+        else if(id == 16)
+            return 19; // Profesional Activity
+        else if(id == 17)
+            return 18;
+    }
+    return 0;
+}
+
+long MainFrame::ConvertItemCodeToProp(const long& id, const Resolution& resolution)
+{
+    if(resolution == N_16) {
+        return id;
+    } else if(resolution == N_20)
+    {
+        if(id < 9)
+            return id;
+        else if(id < 16) {
+            return id - 1;
+        }
+        else if(id == 19)
+            return 16; // Profesional Activity
+        else if(id == 18)
+            return 17;
+    }
+    return 0;
 }
