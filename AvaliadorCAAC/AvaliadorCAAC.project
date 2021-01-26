@@ -99,12 +99,12 @@
     <Configuration Name="Release" CompilerType="MinGW ( TDM-GCC-32 )" DebuggerType="GNU gdb debugger" Type="Executable" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="append" BuildResWithGlobalSettings="append">
       <Compiler Options="-O2;-std=c++17;-Wall;$(shell wx-config --cflags)" C_Options="-O2;-Wall" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
         <IncludePath Value="."/>
-        <IncludePath Value="C:\Users\thale\Documents\GitHub\CAAC\wxPDFDocument\wxPDFDocument"/>
+        <IncludePath Value="C:\Users\Pichau\Documents\GitHub\Avaliador-CAAC\AvaliadorCAAC\ext\lib\include"/>
         <Preprocessor Value="NDEBUG"/>
         <Preprocessor Value="UNICODE"/>
       </Compiler>
       <Linker Options="$(shell wx-config --libs std,adv,ribbon,aui,propgrid,richtext,stc);-mwindows;-static" Required="yes">
-        <LibraryPath Value="C:\Users\thale\Documents\GitHub\CAAC\wxPDFDocument\build-Release\lib"/>
+        <LibraryPath Value="C:\Users\Pichau\Documents\GitHub\Avaliador-CAAC\AvaliadorCAAC\ext\lib"/>
         <Library Value="wxPDFDocument"/>
       </Linker>
       <ResourceCompiler Options="$(shell wx-config --rcflags)" Required="no"/>
