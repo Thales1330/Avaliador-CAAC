@@ -1228,7 +1228,7 @@ void MainFrame::OnAboutClick(wxCommandEvent& event)
     aboutInfo.SetDescription(
         wxT("Software auxiliar para cálculo e geração de relatórios de avaliação de horas complementares pela CAAC\n\n"
             "Comissão para Avaliação de Atividades Complementares - Setor da Indústria\nIFG - Câmpus Itumbiara"));
-    aboutInfo.SetCopyright("(C) 2020");
+    aboutInfo.SetCopyright("(C) 2020-2021");
     aboutInfo.AddDeveloper("Thales Lima Oliveira (thales.oliveira@ifg.edu.br)");
     wxGenericAboutDialog dlgAbout(aboutInfo, this);
     dlgAbout.ShowModal();
