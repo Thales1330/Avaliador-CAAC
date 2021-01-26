@@ -563,10 +563,14 @@ void MainFrame::ValidateCH(Activity* activity)
                 } break;
                 case 7:
                 case 8:
-                case 9:
-                case 10:{
+                case 9: {
                     activity->SetChValidated(60.0);
                     activity->SetChPresented(60.0);
+                } break;
+                case 10:{
+                    double ch = activity->GetChPresented();
+                    activity->SetChValidated(60.0);
+                    activity->SetChPresented(ch);
                 } break;
                 case 12: {
                     activity->SetChValidated(60.0);
@@ -703,9 +707,13 @@ void MainFrame::UpdateChangedPG()
         case 7:
         case 8:
         case 9:
-        case 10:
         {
             // nothing really matters...
+        } break;
+        case 10:
+        {
+            m_pgPropCH->Enable(true);
+            ch = true;
         } break;
         case 12: {
             m_pgPropCH->Enable(true);
@@ -1162,10 +1170,10 @@ void MainFrame::FillAllRows()
                 } break;
                 case 7:
                 case 8:
-                case 9:
-                case 10: {
+                case 9: {
                     // nothing really matters...
                 } break;
+                case 10:
                 case 12: {
                     ch = true;
                 } break;
