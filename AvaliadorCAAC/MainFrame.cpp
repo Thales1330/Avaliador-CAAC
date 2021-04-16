@@ -1048,7 +1048,34 @@ void MainFrame::GenerateReport(wxCommandEvent& event)
     wxString fTFtxt(ctxt, *wxConvCurrent);
 
     wxString table = fTHtxt;
-    int numObs = 3;
+    int numObs = 2;
+    
+    // Get the observations that are equals and associate with a number (starting with 2)
+    std::vector<std::pair<Activity*, int>> obsNumActList; // List of numbers associated with activity with obs strings
+    std::vector<std::pair<wxString, int>> obsUniqueList; // List of unique obs strings
+    for(auto* activity : m_activityList) {
+        if(activity->GetObs() != "") {
+            wxString obs = activity->GetObs();
+            
+            // Check previous list
+            bool isRepeatedObs = false;
+            int currentObsNum = 0;
+            for(auto prevObs : obsUniqueList) {
+                if(prevObs.first == obs){
+                    isRepeatedObs = true;
+                    currentObsNum = prevObs.second;
+                }
+            }
+            if(!isRepeatedObs) {
+                currentObsNum = ++numObs;
+                obsUniqueList.push_back(std::make_pair(obs, currentObsNum));
+            }
+            
+            obsNumActList.push_back(std::make_pair(activity, currentObsNum));
+        }
+    }
+    
+    
     for(auto it = m_activityList.begin(), itEnd = m_activityList.end(); it != itEnd; ++it) {
         Activity* activity = *it;
         if(activity->IsShownInReport()) {
@@ -1061,8 +1088,12 @@ void MainFrame::GenerateReport(wxCommandEvent& event)
             activityStr.Replace("\\requiredCH", wxString::FromDouble(activity->GetChPresented()));
             wxString validatedCHStr = wxString::FromDouble(activity->GetChValidated());
             if(activity->GetObs() != "") {
-                validatedCHStr += wxString::Format(wxS("<sup>%d</sup>"), numObs);
-                numObs++;
+                // Find obs number in list
+                int currentObsNumber = 0;
+                for(auto obsNumber : obsNumActList) {
+                    if(obsNumber.first == activity) currentObsNumber = obsNumber.second;
+                }
+                validatedCHStr += wxString::Format(wxS("<sup>%d</sup>"), currentObsNumber);
             }
             activityStr.Replace("\\validatedCH", validatedCHStr);
             table += activityStr;
@@ -1088,9 +1119,8 @@ void MainFrame::GenerateReport(wxCommandEvent& event)
     olStr += wxString::Format(wxT("<li>A carga horária validada está de acordo com a Resolução n° %s do Regulamento "
                                   "das Atividades Complementares.</li>"),
                               m_resolution == N_16 ? wxT("16") : wxT("20"));
-    for(auto it = m_activityList.begin(), itEnd = m_activityList.end(); it != itEnd; ++it) {
-        Activity* activity = *it;
-        if(activity->GetObs() != "" && activity->IsShownInReport()) { olStr += "<li>" + activity->GetObs() + "</li>"; }
+    for(auto obs : obsUniqueList) {
+        olStr += "<li>" + obs.first + "</li>";
     }
     olStr += "</ol>";
     pdf.WriteXml(olStr);
