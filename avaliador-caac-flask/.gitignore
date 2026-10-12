@@ -1,0 +1,15 @@
+# Segredos do Google Drive: nunca versionar
+credentials.json
+token.json
+token.pickle
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/
+
+# Arquivos gerados em uso
+downloads/
+*.pdf
