@@ -13,3 +13,7 @@ venv/
 # Arquivos gerados em uso
 downloads/
 *.pdf
+
+#Arquivos gerados pelo banco de dados do google drive e avaliadores
+EventList.xml
+report_config.json
