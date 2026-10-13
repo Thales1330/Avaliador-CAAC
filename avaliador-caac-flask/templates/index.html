@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Avaliador CAAC</title>
+  <link rel="icon" type="image/png" href="{{ url_for('static', filename='logo128.png') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <img src="{{ url_for('static', filename='logo128.png') }}" alt="" width="36" height="36">
+      <div>
+        <h1>Avaliador CAAC</h1>
+        <small>Atividades complementares · IFG Itumbiara</small>
+      </div>
+    </div>
+    <nav class="toolbar" aria-label="Ações do processo">
+      <button id="btnNew" class="primary">Novo</button>
+      <button id="btnOpen">Abrir XML</button>
+      <button id="btnSave" disabled>Salvar XML</button>
+      <span class="sep"></span>
+      <button id="btnDriveOpen" disabled>Abrir do Drive</button>
+      <button id="btnDriveSave" disabled>Salvar no Drive</button>
+      <button id="btnDriveConnect" hidden>Conectar ao Drive</button>
+      <span class="sep"></span>
+      <button id="btnReport" class="primary" disabled>Gerar PDF</button>
+      <button id="btnAbout" class="ghost" aria-label="Sobre">?</button>
+      <input type="file" id="fileInput" accept=".xml,application/xml,text/xml" hidden>
+    </nav>
+  </header>
+
+  <section class="processbar" id="processBar" hidden>
+    <span><b>Processo:</b> <span id="lblProtocol"></span></span>
+    <span><b>Aluno:</b> <span id="lblStudent"></span></span>
+    <span><b>Resolução:</b> <span id="lblResolution"></span></span>
+    <button id="btnEditProcess" class="link">Editar processo</button>
+  </section>
+
+  <main>
+    <section class="panel grid-panel">
+      <div class="grid-actions">
+        <button id="btnAdd" disabled>+ Adicionar</button>
+        <button id="btnRemove" disabled>Remover</button>
+        <button id="btnUp" disabled title="Mover para cima" aria-label="Mover para cima">↑</button>
+        <button id="btnDown" disabled title="Mover para baixo" aria-label="Mover para baixo">↓</button>
+        <span class="legend">
+          <i class="dot limited"></i> CH limitada
+          <i class="dot ignored"></i> Restrições ignoradas
+          <i class="dot invalid"></i> Invalidada
+        </span>
+      </div>
+      <div class="table-wrap">
+        <table id="grid">
+          <colgroup>
+            <col style="width:36px"><col style="width:17%"><col style="width:17%"><col style="width:52px">
+            <col style="width:64px"><col style="width:14%"><col style="width:84px"><col style="width:12%">
+            <col style="width:76px">
+          </colgroup>
+          <thead>
+            <tr>
+              <th class="num">#</th><th>Item</th><th>Evento</th><th class="num">TAP</th>
+              <th>Evento IFG</th><th>Instituição</th><th class="num">CH apresentada</th>
+              <th>Data do evento</th><th class="num">CH validada</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+        <p id="emptyMsg" class="empty">Crie um <b>novo processo</b> ou abra um arquivo XML para começar.</p>
+      </div>
+    </section>
+
+    <aside class="panel details" aria-label="Detalhes da atividade">
+      <h2>Atividade</h2>
+      <p id="detailsHint" class="hint">Selecione uma linha da tabela.</p>
+      <form id="detailsForm" autocomplete="off" hidden>
+        <label>Item
+          <select id="fItem"></select>
+        </label>
+        <label>Evento
+          <input id="fEvent" list="eventList" placeholder="Nome do evento...">
+          <datalist id="eventList"></datalist>
+        </label>
+        <label>Descrição do evento
+          <input id="fDesc">
+        </label>
+        <div class="row2">
+          <label><span id="lblShift">Num. Turnos</span>
+            <input id="fShift" type="number" min="0" step="1">
+          </label>
+          <label>CH apresentada
+            <input id="fCh" type="number" min="0" step="0.5">
+          </label>
+        </div>
+        <label>Instituição
+          <input id="fInstitution" placeholder="Nome da instituição...">
+        </label>
+        <label>Data / período
+          <input id="fDate">
+        </label>
+        <label class="check"><input id="fIfg" type="checkbox"> Evento do IFG</label>
+        <label class="check"><input id="fInvalidate" type="checkbox"> Invalidar CH (não computar)</label>
+        <label class="check"><input id="fIgnore" type="checkbox"> Ignorar restrições (limites e 80 %)</label>
+        <label class="check"><input id="fShow" type="checkbox"> Exibir no relatório</label>
+        <label>Observações (aparecem no rodapé do relatório)
+          <textarea id="fObs" rows="3"></textarea>
+        </label>
+        <p class="validated">CH validada: <b id="fValidated">0</b> h</p>
+      </form>
+    </aside>
+  </main>
+
+  <footer class="totals">
+    <span id="totReq">Total solicitado = 0 h</span>
+    <span id="totVal">Total validado = 0 h</span>
+  </footer>
+
+  <!-- Novo / editar processo -->
+  <dialog id="dlgProcess">
+    <form method="dialog" id="formProcess">
+      <h3 id="dlgProcessTitle">Novo processo</h3>
+      <label>Número do processo
+        <input id="pProtocol" required placeholder="23208.000123/2024-15">
+      </label>
+      <label>Nome do estudante
+        <input id="pStudent" required>
+      </label>
+      <label>Resolução
+        <select id="pResolution"></select>
+      </label>
+      <label>Número de documentos (linhas iniciais)
+        <input id="pNumDocs" type="number" min="0" max="200" value="1">
+      </label>
+      <p id="pError" class="error" role="alert" hidden></p>
+      <div class="dialog-actions">
+        <button type="button" id="pCancel">Cancelar</button>
+        <button type="submit" class="primary">OK</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Busca no Drive -->
+  <dialog id="dlgDrive">
+    <form method="dialog" id="formDrive">
+      <h3 id="dlgDriveTitle">Abrir processo do Drive</h3>
+      <div class="row2">
+        <label>Protocolo <input id="dProtocol"></label>
+        <label>Nome <input id="dName"></label>
+      </div>
+      <button type="button" id="dSearch">Buscar</button>
+      <div class="results" id="dResults" role="listbox" aria-label="Processos encontrados"></div>
+      <p id="dStatus" class="hint"></p>
+      <div class="dialog-actions">
+        <button type="button" id="dCancel">Cancelar</button>
+        <button type="submit" class="primary" id="dOk" disabled>Abrir</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="dlgAbout">
+    <form method="dialog">
+      <h3>Avaliador CAAC <small>v{{ version }}</small></h3>
+      <p>Software auxiliar para cálculo e geração de relatórios de avaliação de horas complementares pela CAAC.</p>
+      <p>Comissão para Avaliação de Atividades Complementares – Setor da Indústria<br>IFG – Câmpus Itumbiara</p>
+      <p class="hint">Autor: Thales Lima Oliveira · GPL v2 ou posterior</p>
+      <div class="dialog-actions"><button class="primary">Fechar</button></div>
+    </form>
+  </dialog>
+
+  <div id="toast" role="status" aria-live="polite" hidden></div>
+  <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>

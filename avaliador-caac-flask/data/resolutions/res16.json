@@ -1,0 +1,226 @@
+{
+  "id": 0,
+  "number": "16",
+  "date": "26/12/2011",
+  "total_ch": 120,
+  "family": "2011",
+  "default": true,
+  "items": [
+    {
+      "code": 1,
+      "label": "I - Visitas técnicas",
+      "rule": {
+        "type": "per_shift",
+        "hours": 4
+      },
+      "inputs": {
+        "shift": "Num. Turnos"
+      }
+    },
+    {
+      "code": 2,
+      "label": "II - Atividade prática de campo",
+      "rule": {
+        "type": "per_shift",
+        "hours": 4
+      },
+      "inputs": {
+        "shift": "Num. Turnos"
+      }
+    },
+    {
+      "code": 3,
+      "label": "III - Participação em eventos técnicos, culturais, científicos, acadêmicos, artísticos e esportivos.",
+      "rule": {
+        "type": "presented",
+        "restriction": {
+          "scope": "non_ifg",
+          "factor": 0.8,
+          "cap_percent": 50,
+          "group": "eventos_fora_ifg"
+        }
+      },
+      "inputs": {
+        "shift": "Num. Participações",
+        "ifg": true,
+        "ch": true
+      }
+    },
+    {
+      "code": 4,
+      "label": "IV - Participação em comissão organizadora de eventos institucionais e outros.",
+      "rule": {
+        "type": "presented",
+        "restriction": {
+          "scope": "non_ifg",
+          "factor": 0.8,
+          "cap_percent": 50,
+          "group": "eventos_fora_ifg"
+        }
+      },
+      "inputs": {
+        "shift": "Num. Participações",
+        "ifg": true,
+        "ch": true
+      }
+    },
+    {
+      "code": 5,
+      "label": "V - Apresentação de trabalhos em feiras, congressos, mostras, seminários e outros.",
+      "rule": {
+        "type": "per_shift",
+        "hours": 4
+      },
+      "inputs": {
+        "shift": "Num. Apresentações"
+      }
+    },
+    {
+      "code": 6,
+      "label": "VI - Intérprete de línguas em eventos institucionais e outros.",
+      "rule": {
+        "type": "presented",
+        "restriction": {
+          "scope": "all",
+          "cap_percent": 40,
+          "group": "interprete",
+          "drop_below": 0.5
+        }
+      },
+      "inputs": {
+        "ch": true
+      }
+    },
+    {
+      "code": 7,
+      "label": "VII - Monitorias por período mínimo de um semestre letivo.",
+      "rule": {
+        "type": "fixed",
+        "hours": 60
+      }
+    },
+    {
+      "code": 8,
+      "label": "VIII - Participação em projetos e programas de iniciação científica e tecnológica como aluno titular do projeto, bolsista ou voluntário.",
+      "rule": {
+        "type": "fixed",
+        "hours": 60
+      }
+    },
+    {
+      "code": 9,
+      "label": "IX - Participação em programa de iniciação a docência.",
+      "rule": {
+        "type": "fixed",
+        "hours": 60
+      }
+    },
+    {
+      "code": 10,
+      "label": "X - Participação em projetos de ensino, pesquisa e extensão com duração 60 horas mínima de um semestre letivo.",
+      "rule": {
+        "type": "fixed",
+        "hours": 60,
+        "keep_presented": true
+      },
+      "inputs": {
+        "ch": true
+      }
+    },
+    {
+      "code": 11,
+      "label": "XI - Cursos e minicursos.",
+      "rule": {
+        "type": "presented",
+        "restriction": {
+          "scope": "all",
+          "cap_percent": 40,
+          "group": "cursos",
+          "drop_below": 0.5
+        }
+      },
+      "inputs": {
+        "ch": true
+      }
+    },
+    {
+      "code": 12,
+      "label": "XII - Estágio curricular não obrigatório igual ou superior a cem horas",
+      "rule": {
+        "type": "fixed",
+        "hours": 60,
+        "keep_presented": true
+      },
+      "inputs": {
+        "ch": true
+      }
+    },
+    {
+      "code": 13,
+      "label": "XIII - Participação como representante de turma por um período mínimo de um semestre letivo",
+      "rule": {
+        "type": "fixed",
+        "hours": 30
+      }
+    },
+    {
+      "code": 14,
+      "label": "XIV - Participação como representante discente nas instâncias da Instituição por um período mínimo de um semestre letivo.",
+      "rule": {
+        "type": "fixed",
+        "hours": 30
+      }
+    },
+    {
+      "code": 15,
+      "label": "XV - Participação em órgãos e entidades estudantis, de classe, sindicais ou comunitárias.",
+      "rule": {
+        "type": "fixed",
+        "hours": 30
+      }
+    },
+    {
+      "code": 16,
+      "label": "XVI - Realização de trabalho comunitário.",
+      "rule": {
+        "type": "presented",
+        "restriction": {
+          "scope": "all",
+          "cap_percent": 40,
+          "group": "trabalho_comunitario",
+          "drop_below": 0.5
+        }
+      },
+      "inputs": {
+        "ch": true
+      }
+    },
+    {
+      "code": 17,
+      "label": "XVII - Participação como ouvinte em defesas de trabalhos acadêmicos.",
+      "rule": {
+        "type": "per_shift",
+        "hours": 2,
+        "restriction": {
+          "scope": "all",
+          "cap_percent": 20,
+          "group": "ouvinte_defesas",
+          "drop_below": 0
+        }
+      },
+      "inputs": {
+        "shift": "Num. Participações"
+      }
+    },
+    {
+      "code": 18,
+      "label": "Atividade não pontuada",
+      "rule": {
+        "type": "not_scored"
+      },
+      "inputs": {
+        "ch": true
+      }
+    }
+  ]
+}
